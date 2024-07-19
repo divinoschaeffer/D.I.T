@@ -13,6 +13,8 @@ pub fn init_repository() -> Result<(), io::Error> {
     fs::create_dir("./.dit/refs")?;
 
     init_info_file()?;
+    
+    init_staged_file()?;
 
     Ok(())
 }
@@ -28,5 +30,13 @@ fn init_info_file() -> Result<(), io::Error> {
     )?;
     write_footer_file(String::from("main"), file, 46)?;
 
+    Ok(())
+}
+
+fn init_staged_file() -> Result<(), io::Error> {
+    let file = File::create("./.dit/staged")?;
+
+    write_hash_file(String::from("0000000000000000000000000000000000000000"), &file, 0)?;
+    
     Ok(())
 }
