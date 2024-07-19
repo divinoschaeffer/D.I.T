@@ -85,6 +85,14 @@ impl Tree {
         &self.nodes
     }
     
+    pub fn get_hash(&self) -> &String {
+        &self.hash
+    }
+    
+    pub fn get_name(&self) -> &String {
+        &self.name
+    }
+    
     pub fn display(&self) {
         
         println!("hash: {}, name: {}, nodes: {}", self.hash, self.name, self.nodes.len());
@@ -118,12 +126,24 @@ impl Blob {
         self.name = name;
     }
     
+    pub fn get_name(&self) -> &String {
+        &self.name
+    }
+    
+    pub fn get_hash(&self) -> &String {
+        &self.hash
+    }
+    
     pub fn set_hash(&mut self, hash: String){
         self.hash = hash;
     }
     
     pub fn set_content(&mut self, content: String) {
         self.content = content;
+    }
+    
+    pub fn get_content(&self) -> &String {
+        &self.content
     }
     
     pub fn display(&self) {

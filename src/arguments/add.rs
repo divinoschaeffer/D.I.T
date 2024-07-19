@@ -1,10 +1,12 @@
-use crate::objects::{Blob as StructBlob, NodeType, Tree as StructTree};
+use crate::objects::{Blob as StructBlob, Blob, NodeType, Tree as StructTree, Tree};
 use crate::utils::{find_dit, read_content_file, read_hash_file, real_path};
-use std::fs::File;
+use std::fs::{create_dir, File};
 use std::io;
-use std::path::{Path};
+use std::io:: {BufWriter, Write};
+use std::path::{Path, PathBuf};
 
 pub fn add_files_or_directory(elements: Vec<&String>) -> Result<(), io::Error> {
+    let object_path = find_dit().unwrap().join("objects");
     if elements.is_empty() {
         println!("You need to specify files to add");
     } else if is_first_commit() {
@@ -18,6 +20,8 @@ pub fn add_files_or_directory(elements: Vec<&String>) -> Result<(), io::Error> {
         NodeType::create_node_hash(&mut racine);
 
         racine.display();
+        
+        transcript_tree_to_files(&racine, &object_path);
     }
     Ok(())
 }
@@ -75,7 +79,6 @@ fn create_blob_node(racine: &mut NodeType, paths: &mut Vec<&Path>, path: &&Path,
 }
 
 fn create_tree_node(racine: &mut NodeType, file_name: &str, paths: &mut Vec<&Path>) {
-
     let dir_tree = StructTree::new(String::from(file_name), Vec::new(), String::from(""));
     let mut node = NodeType::Tree(dir_tree);
     if let NodeType::Tree(ref mut tree) = racine {
@@ -92,4 +95,74 @@ fn create_tree_node(racine: &mut NodeType, file_name: &str, paths: &mut Vec<&Pat
             }
         }
     }
+}
+
+fn transcript_tree_to_files(racine: &NodeType, objects_path: &PathBuf){
+    if let NodeType::Tree(tree) = racine {
+        let hash = tree.get_hash().clone();
+
+        let node_path = get_node_path(objects_path, &hash);
+        if !node_path.exists() {
+            let file = File::create(&node_path).unwrap_or_else(|e1| {
+                panic!("Error while creating file in objects directory: {e1}");
+            });
+            let mut writer = BufWriter::new(file);
+
+            write_tree_to_file(&objects_path, tree, &mut writer);
+        }
+    }
+    
+    if let NodeType::Blob(blob) = racine {
+        let hash = blob.get_hash().clone();
+        
+        let node_path = get_node_path(objects_path,&hash);
+        if !node_path.exists() {
+            let file = File::create(&node_path).unwrap_or_else(|e1| {
+                panic!("Error while creating file in objects directory: {e1}");
+            });
+            write_blob_content_to_file(blob, file);
+        }
+    }
+}
+
+fn write_blob_content_to_file(blob: &Blob, file: File) {
+    let mut writer = BufWriter::new(file);
+
+    writeln!(writer, "{}", blob.get_content())
+        .unwrap_or_else(|e| {
+            panic!("Error while writing to file: {e}");
+        });
+}
+
+fn write_tree_to_file(objects_path: &&PathBuf, tree: &Tree, writer: &mut BufWriter<File>) {
+    for node in tree.get_nodes() {
+        if let NodeType::Tree(current_tree) = node {
+            writeln!(writer, "tree {} {}", current_tree.get_hash(), current_tree.get_name())
+                .unwrap_or_else(|e| {
+                    panic!("Error while writing to file: {e}");
+                });
+        }
+        if let NodeType::Blob(current_blob) = node {
+            writeln!(writer, "blob {} {}", current_blob.get_hash(), current_blob.get_name())
+                .unwrap_or_else(|e| {
+                    panic!("Error while writing to file: {e}");
+                });
+        }
+        transcript_tree_to_files(node, &objects_path);
+    }
+}
+
+fn get_node_path(objects_path: &PathBuf, hash: &String) -> PathBuf {
+    let b_hash = &hash[..2];
+    let e_hash = &hash[2..];
+
+
+    let node_dir_path = objects_path.join(b_hash);
+    if !node_dir_path.exists() {
+        create_dir(&node_dir_path).unwrap_or_else(|e| {
+            panic!("Error while creating directory in objects directory: {e}");
+        })
+    }
+    let node_path = node_dir_path.join(e_hash);
+    node_path
 }
