@@ -4,6 +4,7 @@ use std::io::{BufReader, Read};
 use std::os::unix::fs::FileExt;
 use std::path::{Component, Path, PathBuf};
 
+pub const NULL_HASH: &str = "0000000000000000000000000000000000000000";
 pub fn relative_path_to_dit() -> Option<PathBuf> {
     let initial_dir  = env::current_dir()
         .expect("Failed to get current directory");
@@ -17,27 +18,6 @@ pub fn relative_path_to_dit() -> Option<PathBuf> {
                 Ok(path) => Some(PathBuf::from(path)),
                 _ => None
             };
-        }
-
-        match current_dir.parent() {
-            Some(parent) => current_dir = parent.to_path_buf(),
-            None => break,
-        }
-    }
-
-    None
-}
-
-pub fn find_dit() -> Option<PathBuf> {
-    let initial_dir  = env::current_dir()
-        .expect("Failed to get current directory");
-
-    let mut current_dir = initial_dir.clone();
-
-    loop {
-        let dit_path = current_dir.join(".dit");
-        if dit_path.exists() && dit_path.is_dir() {
-            return Some(PathBuf::from(dit_path))
         }
 
         match current_dir.parent() {
@@ -108,7 +88,7 @@ pub fn write_footer_file(footer: String ,file: File, pos: u64) -> Result<(), io:
     Ok(())
 }
 
-pub fn read_content_file(path: &&Path) -> Result<String,io::Error> {
+pub fn read_content_file_from_path(path: &&Path) -> Result<String,io::Error> {
     let file = File::open(path)?;
     let mut buf_reader = BufReader::new(file);
     let mut contents = String::new();

@@ -1,6 +1,9 @@
 use std::cmp::PartialEq;
 use sha1::{Sha1, Digest};
 
+pub const TREE: &str = "tree";
+pub const BLOB:  &str = "blob";
+
 #[derive(Clone)]
 pub struct Blob {
     hash: String,
@@ -28,34 +31,34 @@ impl NodeType {
             NodeType::Tree(tree) => tree.display()
         }
     }
-    
+
     pub fn create_node_hash(racine: &mut NodeType) -> String {
         if let  NodeType::Tree(ref mut tree) = racine {
-            
+
             let mut hashes: Vec<String> = Vec::new();
-            
+
             for node in &mut tree.nodes {
                 let hash = Self::create_node_hash(node);
                 hashes.push(hash);
             }
-            
+
             let mut total = String::new();
-            
+
             for h in &hashes {
                 total += h;
             }
-            
+
             let hash = Sha1::digest(total.as_bytes());
             let string_hash = hex::encode(hash);
             tree.set_hash(string_hash.clone());
             string_hash
-            
+
         } else if let NodeType::Blob(ref mut blob) = racine {
             return blob.hash.clone()
-        } else { 
+        } else {
             return String::new()
         }
-        
+
     }
 }
 
@@ -68,33 +71,50 @@ impl Tree {
         };
         tree
     }
-    
+
     pub fn add_node(&mut self, node: NodeType) {
         self.nodes.push(node)
     }
-    
+
     pub fn find_node(&mut self, node: &NodeType) -> Option<&mut NodeType>{
         self.nodes.iter_mut().find(|x| *x == node)
     }
-    
+
+    pub fn find_node_index(&self, node: &NodeType) -> Option<usize> {
+        self.nodes.iter().position(|n| n == node)
+    }
+
+    pub fn remove_node(&mut self, node: &NodeType) {
+        if let Some(index) = self.find_node_index(node) {
+            self.nodes.remove(index);
+        }
+    }
+
     pub fn contains(&self, node: &NodeType) -> bool {
         self.nodes.contains(node)
     }
     
+    pub fn exist_node(&mut self, node: &NodeType) -> bool {
+        match self.find_node(node) {
+            Some(_) => true,
+            None => false
+        }
+    }
+
     pub fn get_nodes(&self) -> &Vec<NodeType> {
         &self.nodes
     }
-    
+
     pub fn get_hash(&self) -> &String {
         &self.hash
     }
-    
+
     pub fn get_name(&self) -> &String {
         &self.name
     }
-    
+
     pub fn display(&self) {
-        
+
         println!("hash: {}, name: {}, nodes: {}", self.hash, self.name, self.nodes.len());
         for node in &self.nodes[..] {
             node.display()
@@ -112,7 +132,7 @@ impl Tree {
 }
 
 impl Blob {
-    
+
     pub fn new(name: String, content: String, hash: String) -> Blob {
         let blob = Blob {
             name,
@@ -121,35 +141,35 @@ impl Blob {
         };
         blob
     }
-    
+
     pub fn set_name(&mut self, name: String){
         self.name = name;
     }
-    
+
     pub fn get_name(&self) -> &String {
         &self.name
     }
-    
+
     pub fn get_hash(&self) -> &String {
         &self.hash
     }
-    
+
     pub fn set_hash(&mut self, hash: String){
         self.hash = hash;
     }
-    
+
     pub fn set_content(&mut self, content: String) {
         self.content = content;
     }
-    
+
     pub fn get_content(&self) -> &String {
         &self.content
     }
-    
+
     pub fn display(&self) {
         println!("hash: {}, name: {}", self.hash, self.name);
     }
-    
+
     pub fn create_hash(&mut self) {
         let total  = self.name.clone() + &*self.content.clone();
         let hash = Sha1::digest(total.as_bytes());
@@ -160,7 +180,11 @@ impl Blob {
 
 impl PartialEq for Blob {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name && self.content == other.content
+        let empty_string = String::from("");
+        if self.hash != empty_string && other.hash != empty_string {
+            return self.hash == other.hash;
+        }
+        self.name == other.name
     }
 }
 

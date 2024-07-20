@@ -27,17 +27,17 @@ fn main() {
     // INIT
     if matches.get_flag("init") {
         match arguments::init::init_repository(){
-            Ok(()) => (),
-            Err(e) => panic!("Error while initializing dit repository: {e}"),
+            Ok(()) => println!("dit is initialized"),
+            Err(e) => panic!("Error while initializing dit repository: {}",e),
         };
     }
     
     // ADD
     if let Some(elements) = matches.get_many::<String>("add") {
         let elements: Vec<_> = elements.collect();
-        match add::add_files_or_directory(elements) {
+        match add::add(elements) {
             Ok(()) => (),
-            Err(e) => panic!("Error while adding elements to dit : {e}"),
+            Err(e) => panic!("Error while adding elements to dit : {}",e),
         };
     }
 }
