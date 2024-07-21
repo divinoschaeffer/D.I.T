@@ -30,7 +30,6 @@ pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
         let mut root = NodeType::Tree(tree);
 
         add_elements(&elements, &object_path, &staged_path, &mut root);
-
     }
     Ok(())
 }
@@ -42,7 +41,7 @@ fn add_elements(elements: &Vec<&String>, object_path: &PathBuf, staged_path: &Pa
 
     let root_hash = NodeType::create_node_hash(&mut root);
     
-    transcript_tree_to_files(&root, &object_path);
+    transcript_tree_to_files(&mut root, &object_path);
 
     let file = OpenOptions::new()
         .write(true)
@@ -53,7 +52,7 @@ fn add_elements(elements: &Vec<&String>, object_path: &PathBuf, staged_path: &Pa
     write_hash_file(root_hash, &file, 0).unwrap();
 }
 
-fn create_tree_node_from_file(staged_hash: String, mut tree: &mut Tree) {
+pub(crate) fn create_tree_node_from_file(staged_hash: String, mut tree: &mut Tree) {
     let root_file = open_object_file(staged_hash);
     let reader = BufReader::new(root_file);
 
@@ -166,7 +165,7 @@ fn create_tree_node(root: &mut NodeType, file_name: &str, paths: &mut Vec<&Path>
     }
 }
 
-fn transcript_tree_to_files(root: &NodeType, objects_path: &PathBuf){
+pub(crate) fn transcript_tree_to_files(root: &mut NodeType, objects_path: &PathBuf){
     if let NodeType::Tree(tree) = root {
         let hash = tree.get_hash().clone();
 
@@ -203,7 +202,7 @@ fn write_blob_content_to_file(blob: &Blob, file: File) {
         });
 }
 
-fn write_tree_node_to_file(objects_path: &&PathBuf, tree: &Tree, writer: &mut BufWriter<File>) {
+fn write_tree_node_to_file(objects_path: &&PathBuf, tree: &mut Tree, writer: &mut BufWriter<File>) {
     for node in tree.get_nodes() {
         if let NodeType::Tree(current_tree) = node {
             writeln!(writer, "tree {} {}", current_tree.get_hash(), current_tree.get_name())

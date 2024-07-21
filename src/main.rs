@@ -2,6 +2,7 @@ use clap::{Arg, Command};
 use clap::builder::ValueRange;
 use dit::arguments;
 use dit::arguments::add;
+use dit::arguments::rm;
 
 fn main() {
     let matches = Command::new("dit")
@@ -20,7 +21,13 @@ fn main() {
                 .short('a')
                 .long("add")
                 .num_args(0..)
-                .help("add files to follow")
+                .help("add file or files to stage")
+        )
+        .arg(
+            Arg::new("rm")
+                .long("rm")
+                .num_args(0..)
+                .help("add suppressed file or files to stage")
         )
         .get_matches();
 
@@ -39,5 +46,14 @@ fn main() {
             Ok(()) => (),
             Err(e) => panic!("Error while adding elements to dit : {}",e),
         };
+    }
+    
+    // RM
+    if let Some(elements) = matches.get_many::<String>("rm") {
+        let elements: Vec<_> = elements.collect();
+        match rm::rm(elements) { 
+            Ok(()) => (),
+            Err(e) => panic!("Error while removing elements to dit : {}", e)
+        }
     }
 }

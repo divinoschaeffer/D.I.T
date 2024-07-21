@@ -60,6 +60,13 @@ impl NodeType {
         }
 
     }
+    
+    pub fn get_name(&self) -> String{
+        match self { 
+            NodeType::Tree(tree) => tree.name.clone(),
+            NodeType::Blob(blob) => blob.name.clone()
+        }
+    }
 }
 
 impl Tree {
@@ -83,6 +90,12 @@ impl Tree {
     pub fn find_node_index(&self, node: &NodeType) -> Option<usize> {
         self.nodes.iter().position(|n| n == node)
     }
+    
+    pub fn find_node_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
+        self.nodes.iter_mut().find(|x| {
+            *x.get_name() == file_name
+        })
+    }
 
     pub fn remove_node(&mut self, node: &NodeType) {
         if let Some(index) = self.find_node_index(node) {
@@ -101,8 +114,8 @@ impl Tree {
         }
     }
 
-    pub fn get_nodes(&self) -> &Vec<NodeType> {
-        &self.nodes
+    pub fn get_nodes(&mut self) -> &mut Vec<NodeType> {
+        &mut self.nodes
     }
 
     pub fn get_hash(&self) -> &String {
