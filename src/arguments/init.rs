@@ -1,5 +1,5 @@
 use crate::utils::{NULL_HASH, read_hash_file, write_footer_file, write_hash_file, write_header_file};
-use std::fs::File;
+use std::fs::{create_dir, File};
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
 
@@ -76,6 +76,11 @@ pub fn find_staged() -> PathBuf {
     dit_path.join("staged")
 }
 
+pub fn find_info() -> PathBuf {
+    let dit_path = find_dit().unwrap();
+    dit_path.join("info")
+}
+
 pub fn find_dit() -> Option<PathBuf> {
     let initial_dir  = env::current_dir()
         .expect("Failed to get current directory");
@@ -95,4 +100,18 @@ pub fn find_dit() -> Option<PathBuf> {
     }
 
     None
+}
+
+pub fn get_object_path(objects_path: &PathBuf, hash: &String) -> PathBuf {
+    let b_hash = &hash[..2];
+    let e_hash = &hash[2..];
+
+    let object_dir_path = objects_path.join(b_hash);
+    if !object_dir_path.exists() {
+        create_dir(&object_dir_path).unwrap_or_else(|e| {
+            panic!("Error while creating directory in objects directory: {e}");
+        })
+    }
+    let node_path = object_dir_path.join(e_hash);
+    node_path
 }

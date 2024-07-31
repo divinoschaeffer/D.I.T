@@ -2,6 +2,7 @@ use clap::{Arg, Command};
 use clap::builder::ValueRange;
 use dit::arguments;
 use dit::arguments::add;
+use dit::arguments::commit::commit;
 use dit::arguments::rm;
 
 fn main() {
@@ -27,7 +28,14 @@ fn main() {
             Arg::new("rm")
                 .long("rm")
                 .num_args(0..)
-                .help("add suppressed file or files to stage")
+                .help("suppressed file or files from stage")
+        )
+        .arg(
+            Arg::new("commit")
+                .short('c')
+                .long("commit")
+                .num_args(0)
+                .help("commit all staged elements")
         )
         .get_matches();
 
@@ -38,7 +46,7 @@ fn main() {
             Err(e) => panic!("Error while initializing dit repository: {}",e),
         };
     }
-    
+
     // ADD
     if let Some(elements) = matches.get_many::<String>("add") {
         let elements: Vec<_> = elements.collect();
@@ -47,13 +55,20 @@ fn main() {
             Err(e) => panic!("Error while adding elements to dit : {}",e),
         };
     }
-    
+
     // RM
     if let Some(elements) = matches.get_many::<String>("rm") {
         let elements: Vec<_> = elements.collect();
-        match rm::rm(elements) { 
+        match rm::rm(elements) {
             Ok(()) => (),
             Err(e) => panic!("Error while removing elements to dit : {}", e)
+        }
+    }
+    
+    if matches.get_flag("commit") {
+        match commit() { 
+            Ok(()) => (),
+            Err(e) => panic!("Error while commiting: {}",e)
         }
     }
 }

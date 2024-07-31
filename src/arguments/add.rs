@@ -1,10 +1,10 @@
 use crate::objects::{Blob as StructBlob, Blob, BLOB, NodeType, Tree as StructTree, Tree};
-use crate::utils::{NULL_HASH, read_content_file_from_path, read_hash_file, real_path, write_hash_file};
-use std::fs::{create_dir, File, OpenOptions};
+use crate::utils::{NULL_HASH, read_content_file_from_path, real_path, write_hash_file};
+use std::fs::{ File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
-use crate::arguments::init::{find_dit, get_staged_hash, open_object_file};
+use crate::arguments::init::{find_dit, get_object_path, get_staged_hash, open_object_file};
 
 pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
     let dit_path = find_dit().unwrap_or_else(|| {
@@ -85,14 +85,6 @@ fn create_blob_node_from_file(file_name: String, hash: String, root: &mut Tree) 
     root.add_node(node);
 }
 
-#[warn(dead_code)]
-fn is_first_commit() -> bool {
-    let dit_path = find_dit().unwrap();
-    let info_path = dit_path.join("info");
-    let file = File::open(info_path).unwrap();
-    read_hash_file(file, 5) == "0000000000000000000000000000000000000000"
-}
-
 fn create_repository_tree(root: &mut NodeType, element: &String) {
     let real_path = real_path(element);
     if !real_path.exists() {
@@ -169,7 +161,7 @@ pub(crate) fn transcript_tree_to_files(root: &mut NodeType, objects_path: &PathB
     if let NodeType::Tree(tree) = root {
         let hash = tree.get_hash().clone();
 
-        let node_path = get_node_path(objects_path, &hash);
+        let node_path = get_object_path(objects_path, &hash);
         if !node_path.exists() {
             let file = File::create(&node_path).unwrap_or_else(|e1| {
                 panic!("Error while creating file in objects directory: {e1}");
@@ -183,7 +175,7 @@ pub(crate) fn transcript_tree_to_files(root: &mut NodeType, objects_path: &PathB
     if let NodeType::Blob(blob) = root {
         let hash = blob.get_hash().clone();
         
-        let node_path = get_node_path(objects_path,&hash);
+        let node_path = get_object_path(objects_path, &hash);
         if !node_path.exists() {
             let file = File::create(&node_path).unwrap_or_else(|e1| {
                 panic!("Error while creating file in objects directory: {e1}");
@@ -220,16 +212,3 @@ fn write_tree_node_to_file(objects_path: &&PathBuf, tree: &mut Tree, writer: &mu
     }
 }
 
-fn get_node_path(objects_path: &PathBuf, hash: &String) -> PathBuf {
-    let b_hash = &hash[..2];
-    let e_hash = &hash[2..];
-    
-    let node_dir_path = objects_path.join(b_hash);
-    if !node_dir_path.exists() {
-        create_dir(&node_dir_path).unwrap_or_else(|e| {
-            panic!("Error while creating directory in objects directory: {e}");
-        })
-    }
-    let node_path = node_dir_path.join(e_hash);
-    node_path
-}
