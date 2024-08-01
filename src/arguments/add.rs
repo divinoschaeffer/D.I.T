@@ -45,7 +45,7 @@ fn add_elements(elements: &Vec<&String>, object_path: &PathBuf, staged_path: &Pa
 
     let file = OpenOptions::new()
         .write(true)
-        .append(true)
+        .append(false)
         .create(true)
         .open(staged_path).unwrap();
 
