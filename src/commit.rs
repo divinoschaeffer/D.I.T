@@ -2,7 +2,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Error, Write};
 use sha1::{Digest, Sha1};
 use crate::arguments::init::{find_info, find_objects, find_staged, get_object_path};
-use crate::utils::write_hash_file;
+use crate::utils::{write_hash_file, NULL_HASH};
 
 pub struct Commit {
     hash: String,
@@ -54,6 +54,7 @@ impl Commit {
             let commit_file = File::create(&commit_path).unwrap_or_else(|e| {
                 panic!("Error while creating file in objects directory: {e}");
             });
+            
             let mut writer = BufWriter::new(commit_file);
             self.write_commit(&mut writer).unwrap_or_else(|e1| {
                 panic!("Error while writing commit: {e1}");
@@ -61,7 +62,7 @@ impl Commit {
             
             let info_file = OpenOptions::new()
                 .write(true)
-                .append(true)
+                .append(false)
                 .create(false)
                 .open(info_path).unwrap();
             
@@ -69,11 +70,11 @@ impl Commit {
 
             let staged_file = OpenOptions::new()
                 .write(true)
-                .append(true)
+                .append(false)
                 .create(false)
                 .open(staged_path).unwrap();
 
-            write_hash_file(self.hash.clone(),&staged_file,0).unwrap();
+            write_hash_file(String::from(NULL_HASH) ,&staged_file,0).unwrap();
         }
     }
     
