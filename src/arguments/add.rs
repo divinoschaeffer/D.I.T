@@ -1,7 +1,7 @@
 use crate::objects::{Blob as StructBlob, Blob, BLOB, NodeType, Tree as StructTree, Tree};
 use crate::utils::{NULL_HASH, read_content_file_from_path, real_path, write_hash_file};
-use std::fs::{ File, OpenOptions};
-use std::io;
+use std::fs::{ self, File, OpenOptions};
+use std::{io, path};
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use crate::arguments::init::{find_dit, get_object_path, get_staged_hash, open_object_file};
@@ -14,27 +14,29 @@ pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
     let object_path = dit_path.join("objects");
     let staged_path = dit_path.join("staged");
     let staged_hash = get_staged_hash();
+
+    let new_elements = process_elements(elements);
     
-    if elements.is_empty() {
+    if new_elements.is_empty() {
         println!("You need to specify files to add");
     } else if staged_hash == NULL_HASH {
         
         let tree = StructTree::new(String::from(""), Vec::new(), String::from(""));
         let mut root: NodeType = NodeType::Tree(tree);
 
-        add_elements(&elements, &object_path, &staged_path, &mut root);
+        add_elements(&new_elements, &object_path, &staged_path, &mut root);
 
     } else {
         let mut tree = StructTree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
         create_tree_node_from_file(staged_hash, &mut tree);
         let mut root = NodeType::Tree(tree);
 
-        add_elements(&elements, &object_path, &staged_path, &mut root);
+        add_elements(&new_elements, &object_path, &staged_path, &mut root);
     }
     Ok(())
 }
 
-fn add_elements(elements: &Vec<&String>, object_path: &PathBuf, staged_path: &PathBuf, mut root: &mut NodeType) {
+fn add_elements(elements: &Vec<String>, object_path: &PathBuf, staged_path: &PathBuf, mut root: &mut NodeType) {
     for element in elements {
         create_repository_tree(&mut root, element);
     }
@@ -212,3 +214,32 @@ fn write_tree_node_to_file(objects_path: &&PathBuf, tree: &mut Tree, writer: &mu
     }
 }
 
+fn process_elements(elements: Vec<&String>) -> Vec<String> {
+    let mut owned_elements: Vec<String> = elements.iter().map(|s| s.to_string()).collect();
+    let mut index = 0;
+
+    while index < owned_elements.len() {
+        let element = &owned_elements[index];
+        let path = PathBuf::from(element);
+
+        if path.is_dir() {
+            match fs::read_dir(path) {
+                Ok(paths) => {
+                    for path in paths {
+                        if let Ok(entry) = path {
+                            if let Some(literal) = entry.path().to_str() {
+                                owned_elements.push(literal.to_string());
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to read directory {}: {}", element, e);
+                }
+            }
+        }
+        index += 1;
+    }
+    
+    owned_elements
+}
