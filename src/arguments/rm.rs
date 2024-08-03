@@ -42,7 +42,7 @@ pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
 
         let file = OpenOptions::new()
             .write(true)
-            .append(true)
+            .append(false)
             .create(true)
             .open(staged_path).unwrap();
 
