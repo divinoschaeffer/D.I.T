@@ -4,6 +4,7 @@ use dit::arguments;
 use dit::arguments::add;
 use dit::arguments::commit::commit;
 use dit::arguments::rm;
+use dit::arguments::delete::delete;
 
 fn main() {
     let matches = Command::new("dit")
@@ -37,6 +38,13 @@ fn main() {
                 .num_args(0)
                 .help("commit all staged elements")
         )
+        .arg(
+            Arg::new("delete")
+                .short('d')
+                .long("delete")
+                .num_args(0..)
+                .help("suppress commited elements")
+        )
         .get_matches();
 
     // INIT
@@ -62,6 +70,14 @@ fn main() {
         match rm::rm(elements) {
             Ok(()) => (),
             Err(e) => panic!("Error while removing elements to dit : {}", e)
+        }
+    }
+
+    if let Some(elements) = matches.get_many::<String>("delete") {
+        let elements: Vec<_> = elements.collect();
+        match delete (elements) {
+            Ok(()) => (),
+            Err(e) => panic!("Error while deleting elements to dit : {}", e)
         }
     }
     

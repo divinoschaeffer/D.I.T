@@ -1,9 +1,9 @@
 use std::fs::OpenOptions;
 use std::io;
 use std::path::Path;
-use crate::arguments::add::{create_tree_node_from_file, transcript_tree_to_files};
 use crate::arguments::init::{find_dit, get_staged_hash};
-use crate::objects::NodeType;
+use crate::objects::node_type::NodeType;
+use crate::objects::tree::Tree;
 use crate::utils::{NULL_HASH, real_path, write_hash_file};
 
 pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
@@ -20,9 +20,9 @@ pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
     } else if staged_hash == NULL_HASH {
         println!("You need to add files before remove them");
     } else {
-        let mut tree = crate::objects::Tree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
+        let mut tree = Tree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
         
-        create_tree_node_from_file(staged_hash, &mut tree);
+        tree.create_tree_node_from_file(staged_hash);
 
         let mut root = NodeType::Tree(tree);
         
@@ -38,7 +38,7 @@ pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
 
         let root_hash = NodeType::create_node_hash(&mut root);
 
-        transcript_tree_to_files(&mut root, &object_path);
+        root.transcript_to_files(&object_path);
 
         let file = OpenOptions::new()
             .write(true)
