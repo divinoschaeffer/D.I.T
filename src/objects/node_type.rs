@@ -4,7 +4,7 @@ use sha1::{Digest, Sha1};
 
 use crate::{arguments::init::get_object_path, utils::{read_content_file_from_path, real_path}};
 
-use super::{blob::Blob, tree::Tree};
+use super::{blob::Blob, tree::{self, Tree}};
 
 #[derive(Clone)]
 pub enum NodeType {
@@ -152,6 +152,13 @@ impl NodeType {
                     panic!("Error while creating file in objects directory: {e1}");
                 });
                 blob.write_content_to_file(file);
+            }
+        }
+    }
+
+    pub fn merge(r1: &mut NodeType, r2: NodeType, r3: NodeType){
+        if let NodeType::Tree(tree) = r2 {
+            for node in tree.get_nodes(){
             }
         }
     }

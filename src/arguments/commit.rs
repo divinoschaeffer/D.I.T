@@ -1,9 +1,14 @@
-use std::fs::File;
 use std::io;
 use std::process::Command;
 use crate::arguments::init::{find_dit, get_staged_hash};
 use crate::commit::Commit;
-use crate::utils::{NULL_HASH, read_content_file_from_path, read_hash_file};
+use crate::objects::node_type::NodeType;
+use crate::objects::tree::Tree;
+use crate::utils::{read_content_file_from_path, real_path, NULL_HASH};
+
+use super::delete::get_deleted_elements;
+use super::init::get_head_hash;
+use super::rm::find_element_to_remove;
 
 pub fn commit() -> Result<(), io::Error>{
 
@@ -27,19 +32,51 @@ pub fn commit() -> Result<(), io::Error>{
         let description = read_content_file_from_path(&desc_path.as_path()).unwrap();
         let parent = NULL_HASH;
         let tree = staged_hash;
-        let commit = Commit::new(tree, String::from(parent), description);
+        let commit: Commit = Commit::new(tree, String::from(parent), description);
         
         commit.display();
         
         commit.transcript_commit_to_file();
+    } else {
+        Command::new("nano")
+            .arg(desc_path.clone())
+            .spawn()
+            .expect("Failed to open nano")
+            .wait()
+            .expect("Error with running nano");
+        
+        let description = read_content_file_from_path(&desc_path.as_path()).unwrap();
+        let last_commit_hash = get_head_hash();
+
+        let last_commit = Commit::get_commit_from_file(last_commit_hash.clone());
+
+        let mut staged_tree = Tree::new(String::from(""), Vec::new(), String::from(""));
+        staged_tree.get_tree_from_file(staged_hash);
+        let mut staged_root =  NodeType::Tree(staged_tree);
+
+        let mut last_commit_tree = Tree::new(String::from(""), Vec::new(), String::from(""));
+        last_commit_tree.get_tree_from_file(last_commit.get_hash().to_string());
+        let mut last_commit_root: NodeType = NodeType::Tree(last_commit_tree);
+
+        let deleted_elements = get_deleted_elements();
+
+        for deleted_element in deleted_elements {
+            let real_path = real_path(&deleted_element);
+            
+            let mut ancestors: Vec<_> = real_path.ancestors().collect();
+            ancestors.pop();
+            ancestors.reverse();
+            
+            find_element_to_remove(&mut last_commit_root, &mut ancestors);
+            find_element_to_remove(&mut staged_root, &mut ancestors);
+        }
+
+
     }
     Ok(())
 }
 
 fn is_first_commit() -> bool {
-    let dit_path = find_dit().unwrap();
-    let info_path = dit_path.join("info");
-    let file = File::open(info_path).unwrap();
-    read_hash_file(file, 5) == NULL_HASH
+    get_head_hash() == NULL_HASH
 }
 

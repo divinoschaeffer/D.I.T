@@ -59,11 +59,19 @@ pub fn open_object_file(hash: String) -> File {
 }
 
 pub fn get_staged_hash() -> String {
-    let staged_path = find_dit().unwrap().join("staged");
+    let staged_path = find_staged();
     let file = File::open(staged_path).unwrap_or_else(|e| {
         panic!("Error while opening staged file: {e}");
     });
     read_hash_file(file, 0)
+}
+
+pub fn get_head_hash()  -> String {
+    let info_path = find_info();
+    let file = File::open(info_path).unwrap_or_else(|e| {
+        panic!("Error while opening staged file: {e}");
+    });
+    read_hash_file(file, 5)
 }
 
 pub fn find_objects() -> PathBuf{

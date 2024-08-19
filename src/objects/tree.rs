@@ -84,7 +84,7 @@ impl Tree {
         self.hash = hash;
     }
 
-    pub fn create_tree_node_from_file(&mut self, staged_hash: String){
+    pub fn get_tree_from_file(&mut self, staged_hash: String){
         let root_file = open_object_file(staged_hash);
         let reader = BufReader::new(root_file);
 
@@ -97,17 +97,17 @@ impl Tree {
             let name = &content[46..];
 
             if &content[0..4] == BLOB {
-                self.create_blob_node_from_file(String::from(name), String::from(hash))
+                self.get_blob_from_file(String::from(name), String::from(hash))
             } else {
                 let mut new_tree = Tree::new(String::from(name), Vec::new(), String::from(hash));
-                new_tree.create_tree_node_from_file(String::from(hash));
+                new_tree.get_tree_from_file(String::from(hash));
                 let node = NodeType::Tree(new_tree);
                 self.add_node(node);
             }
         }
     }
 
-    pub fn create_blob_node_from_file(&mut self, file_name: String, hash: String) {
+    pub fn get_blob_from_file(&mut self, file_name: String, hash: String) {
         let blob_file = open_object_file(String::from(hash.clone()));
         let mut buf_reader = BufReader::new(blob_file);
         let mut contents = String::new();

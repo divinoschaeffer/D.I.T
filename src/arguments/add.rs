@@ -28,7 +28,7 @@ pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
 
     } else {
         let mut tree = Tree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
-        tree.create_tree_node_from_file(staged_hash);
+        tree.get_tree_from_file(staged_hash);
         let mut root = NodeType::Tree(tree);
 
         add_elements(&new_elements, &object_path, &staged_path, &mut root);

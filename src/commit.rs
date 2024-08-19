@@ -1,7 +1,7 @@
 use std::fs::{File, OpenOptions};
-use std::io::{BufWriter, Error, Write};
+use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
 use sha1::{Digest, Sha1};
-use crate::arguments::init::{find_info, find_objects, find_staged, get_object_path};
+use crate::arguments::init::{find_info, find_objects, find_staged, get_object_path, open_object_file};
 use crate::utils::{write_hash_file, NULL_HASH};
 
 pub struct Commit {
@@ -32,12 +32,24 @@ impl Commit {
         &self.parent
     }
 
+    pub fn set_parent(&mut self, parent: String){
+        self.parent = parent;
+    }
+
     pub fn get_tree(&self) -> &String {
         &self.tree
     }
 
+    pub fn set_tree(&mut self, tree: String) {
+        self.tree = tree;
+    }
+
     pub fn get_description(&self) -> &String {
         &self.description
+    }
+
+    pub fn set_description(&mut self, description: String){
+        self.description = description;
     }
 
     pub fn display(&self) {
@@ -81,7 +93,29 @@ impl Commit {
     fn write_commit(&self, writer: &mut BufWriter<File>) -> Result<(),Error> {
         writeln!(writer, "tree {}", self.tree)?;
         writeln!(writer, "pare {}", self.parent)?;
-        writeln!(writer,"{}", self.description)?;
+        write!(writer,"{}", self.description)?;
         Ok(())
     }
+
+    pub fn get_commit_from_file(hash: String) -> Commit{
+        let file = open_object_file(hash);
+        let mut reader = BufReader::new(file);
+        let mut tree_line: String = Default::default();
+        reader.read_line(&mut tree_line).expect("Failed to read commit file");
+        let tree = &tree_line[5..45];
+    
+
+        let mut parent_line: String = Default::default();
+        reader.read_line(&mut parent_line).expect("Failed to read commit file");
+        let parent = &parent_line[5..45];
+
+        let mut description: String = Default::default();
+        reader.read_to_string(&mut description).expect("Failed to read commit file");
+
+        println!("{tree}");
+        println!("{parent}");
+        println!("{description}");
+    
+        Commit::new(String::from(tree), String::from(parent), description)
+    } 
 }
