@@ -30,13 +30,8 @@ pub fn commit() -> Result<(), io::Error>{
             .expect("Error with running nano");
         
         let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
-        let parent = NULL_HASH;
-        let tree = staged_hash;
-        let commit: Commit = Commit::new(tree, String::from(parent), description);
         
-        commit.transcript_commit_to_file();
-        
-        Commit::delete_description_file();
+        create_commit(description, String::from(NULL_HASH), staged_hash);
         
     } else {
         Command::new("nano")
@@ -82,16 +77,20 @@ pub fn commit() -> Result<(), io::Error>{
         let mut result = NodeType::merge(last_commit_root, staged_root).unwrap();
         let commit_tree_hash = NodeType::create_node_hash(&mut result);
         result.transcript_to_files(&find_objects());
-        
-        let parent = last_commit_hash;
-        let tree = commit_tree_hash;
-        let commit: Commit = Commit::new(tree, String::from(parent), description);
-        
-        commit.transcript_commit_to_file();
-        
-        Commit::delete_description_file();
+
+        create_commit(description, last_commit_hash, commit_tree_hash);
     }
     Ok(())
+}
+
+fn create_commit(description: String, last_commit_hash: String, commit_tree_hash: String) {
+    let parent = last_commit_hash;
+    let tree = commit_tree_hash;
+    let commit: Commit = Commit::new(tree, String::from(parent), description);
+
+    commit.transcript_commit_to_file();
+
+    Commit::delete_description_file();
 }
 
 fn is_first_commit() -> bool {
