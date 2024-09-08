@@ -5,6 +5,7 @@ use dit::arguments::add;
 use dit::arguments::commit::commit;
 use dit::arguments::delete::delete;
 use dit::arguments::rm;
+use dit::arguments::message::message;
 
 fn main() {
     let matches = Command::new("dit")
@@ -37,6 +38,13 @@ fn main() {
                 .long("commit")
                 .num_args(0)
                 .help("commit all staged elements")
+        )
+        .arg(
+            Arg::new("message")
+                .short('m')
+                .long("message")
+                .num_args(1)
+                .help("commit message")
         )
         .arg(
             Arg::new("delete")
@@ -73,6 +81,7 @@ fn main() {
         }
     }
 
+    // DELETE
     if let Some(elements) = matches.get_many::<String>("delete") {
         let elements: Vec<_> = elements.collect();
         match delete (elements) {
@@ -81,10 +90,19 @@ fn main() {
         }
     }
     
+    // COMMIT
     if matches.get_flag("commit") {
         match commit() { 
             Ok(()) => (),
             Err(e) => panic!("Error while commiting: {}",e)
+        }
+    }
+    
+    // MESSAGE
+    if let Some(mes) = matches.get_one::<String>("message"){
+        match message(mes.parse().unwrap()) { 
+            Ok(()) => (),
+            Err(e) => panic!("Error while writing message: {}", e)
         }
     }
 }
