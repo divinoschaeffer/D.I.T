@@ -1,7 +1,9 @@
 use std::fs::{File, OpenOptions};
+use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
 use sha1::{Digest, Sha1};
 use crate::arguments::init::{find_info, find_objects, find_staged, get_object_path, open_object_file};
+use crate::objects::branch::Branch;
 use crate::utils::{write_hash_file, NULL_HASH};
 pub struct Commit {
     hash: String,
@@ -71,6 +73,8 @@ impl Commit {
                 panic!("Error while writing commit: {e1}");
             });
             
+            self.reference_commit().expect("Error while referencing commit");
+            
             let info_file = OpenOptions::new()
                 .write(true)
                 .append(false)
@@ -93,6 +97,21 @@ impl Commit {
         writeln!(writer, "tree {}", self.tree)?;
         writeln!(writer, "pare {}", self.parent)?;
         write!(writer,"{}", self.description)?;
+        Ok(())
+    }
+    
+    fn reference_commit(&self) -> Result<(), io::Error> {
+        let branch = Branch::get_branch_from_file();
+        let branch_path = format!("./.dit/refs/{}", branch.get_name());
+        
+        let file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(branch_path)?;
+        
+        let mut writer = BufWriter::new(file);
+        writeln!(writer, "{} {}", self.parent, self.hash)?;
         Ok(())
     }
     

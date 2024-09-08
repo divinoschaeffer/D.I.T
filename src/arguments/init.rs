@@ -1,7 +1,8 @@
-use crate::utils::{NULL_HASH, read_hash_file, write_footer_file, write_hash_file, write_header_file};
+use crate::utils::{NULL_HASH, read_hash_file, write_hash_file};
 use std::fs::{create_dir, File};
 use std::path::{Path, PathBuf};
 use std::{env, fs, io};
+use crate::objects::branch::Branch;
 
 pub fn init_repository() -> Result<(), io::Error> {
     if Path::new("./.dit").exists() {
@@ -10,7 +11,7 @@ pub fn init_repository() -> Result<(), io::Error> {
     }
 
     fs::create_dir_all("./.dit/objects")?;
-    fs::create_dir("./.dit/refs")?;
+    fs::create_dir_all("./.dit/refs/")?;
 
     init_info_file()?;
     
@@ -22,15 +23,9 @@ pub fn init_repository() -> Result<(), io::Error> {
 }
 
 fn init_info_file() -> Result<(), io::Error> {
-    let file = File::create("./.dit/info")?;
-
-    write_header_file(String::from("HEAD"), &file, 0)?;
-    write_hash_file(
-        String::from(NULL_HASH),
-        &file,
-        5,
-    )?;
-    write_footer_file(String::from("main"), file, 46)?;
+    File::create("./.dit/info")?;
+    
+    Branch::create_branch(String::from("main"),String::from(NULL_HASH));
 
     Ok(())
 }

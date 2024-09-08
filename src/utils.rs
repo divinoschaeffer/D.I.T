@@ -5,6 +5,7 @@ use std::os::unix::fs::FileExt;
 use std::path::{Component, Path, PathBuf};
 
 pub const NULL_HASH: &str = "0000000000000000000000000000000000000000";
+
 pub fn relative_path_to_dit() -> Option<PathBuf> {
     let initial_dir  = env::current_dir()
         .expect("Failed to get current directory");
