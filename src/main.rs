@@ -3,8 +3,8 @@ use clap::builder::ValueRange;
 use dit::arguments;
 use dit::arguments::add;
 use dit::arguments::commit::commit;
-use dit::arguments::rm;
 use dit::arguments::delete::delete;
+use dit::arguments::rm;
 
 fn main() {
     let matches = Command::new("dit")

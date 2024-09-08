@@ -26,17 +26,26 @@ impl Tree {
     }
 
     pub fn find_node(&mut self, node: &NodeType) -> Option<&mut NodeType>{
-        self.nodes.iter_mut().find(|x| *x == node)
+        self.nodes.iter_mut().find(|x| *x == node && Self::is_tree(node))
     }
 
     pub fn find_node_index(&self, node: &NodeType) -> Option<usize> {
         self.nodes.iter().position(|n| n == node)
     }
-    
+
     pub fn find_node_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
         self.nodes.iter_mut().find(|x| {
             *x.get_name() == file_name
         })
+    }
+
+    pub fn replace_node(&mut self, node: NodeType) {
+        for n in self.nodes.iter_mut() {
+            if n.get_name() == node.get_name() {
+                *n = node;
+                return;
+            }
+        }
     }
 
     pub fn remove_node(&mut self, node: &NodeType) {
@@ -49,15 +58,48 @@ impl Tree {
         self.nodes.contains(node)
     }
     
-    pub fn exist_node(&mut self, node: &NodeType) -> bool {
-        match self.find_node(node) {
-            Some(_) => true,
-            None => false
+    pub fn exist_node_with_same_name(&mut self, name: String) -> bool {
+        self.nodes.iter().any(|n| n.get_name() == name)
+    }
+
+    pub fn exist_node_with_same_name_and_type(&mut self, node: &NodeType) -> bool {
+        self.nodes.iter().any(|n| n.get_name() == node.get_name() && Self::is_tree(node))
+    }
+    
+    pub fn is_tree(n1: &NodeType) -> bool {
+        match n1 { 
+            NodeType::Tree(_) => true,
+            _ => false
         }
     }
 
-    pub fn get_nodes(&mut self) -> &mut Vec<NodeType> {
+    pub fn complete_node(&mut self, node: NodeType) {
+        let node_name = node.get_name();
+
+        if !self.exist_node_with_same_name(node_name) {
+            self.add_node(node);
+        } else {
+            match node {
+                NodeType::Blob(_) => {
+                    self.replace_node(node);
+                }
+                _ => (),
+            }
+        }
+    }
+    
+    pub fn complete_node_from_another_node(&mut self, node: NodeType) {
+        for n in node.get_nodes() {
+            self.complete_node(n);
+        }
+    }
+
+    pub fn get_mut_nodes(&mut self) -> &mut Vec<NodeType> {
         &mut self.nodes
+    }
+    
+    pub fn get_nodes(&self) -> Vec<NodeType> {
+        self.nodes.clone()
     }
 
     pub fn get_hash(&self) -> &String {
@@ -118,7 +160,7 @@ impl Tree {
     }
 
     pub fn write_tree_node_to_file(&mut self, objects_path: &&PathBuf, writer: &mut BufWriter<File>) {
-        for node in self.get_nodes() {
+        for node in self.get_mut_nodes() {
             if let NodeType::Tree(current_tree) = node {
                 writeln!(writer, "tree {} {}", current_tree.get_hash(), current_tree.get_name())
                     .unwrap_or_else(|e| {
@@ -139,6 +181,6 @@ impl Tree {
 
 impl PartialEq for Tree {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.hash == other.hash
     }
 }

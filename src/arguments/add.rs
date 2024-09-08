@@ -8,7 +8,7 @@ use crate::arguments::init::{find_dit, get_staged_hash};
 
 pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
     let dit_path = find_dit().unwrap_or_else(|| {
-        panic!("dit is not initialized");
+        panic!("dit is not initialize");
     });
     
     let object_path = dit_path.join("objects");

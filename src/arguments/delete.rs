@@ -32,7 +32,7 @@ pub fn delete(elements: Vec<&String>) -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn get_deleted_elements() -> Vec<String>{
+pub fn get_deleted_elements() -> Option<Vec<String>>{
     let dit_path = find_dit().expect("Failed to open dit");
     let deleted_path = dit_path.join("deleted");
 
@@ -53,9 +53,7 @@ pub fn get_deleted_elements() -> Vec<String>{
             elements.push(content);
 
         }
-
-        print!("{:?}", elements);
-
-        elements
+    
+        Some(elements)
 
 }

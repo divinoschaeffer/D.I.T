@@ -64,11 +64,11 @@ pub fn find_element_to_remove(root: &mut NodeType, paths: &mut Vec<&Path>) {
         if let Some(node) = tree.find_node_by_name(String::from(file_name)) {
             if paths.len() == 1 {
                 if let Some(index) = tree_copy.find_node_index(node) {
-                    tree.get_nodes().remove(index);
+                    tree.get_mut_nodes().remove(index);
                 }
             } else {
                 if let Some(index) = tree_copy.find_node_index(node) {
-                    let children = tree.get_nodes();
+                    let children = tree.get_mut_nodes();
                     paths.remove(0);
                     find_element_to_remove(&mut children[index], paths);
                 }

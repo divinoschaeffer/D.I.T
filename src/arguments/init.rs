@@ -15,6 +15,8 @@ pub fn init_repository() -> Result<(), io::Error> {
     init_info_file()?;
     
     init_staged_file()?;
+    
+    File::create("./.dit/deleted")?;
 
     Ok(())
 }

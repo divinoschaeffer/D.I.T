@@ -4,7 +4,7 @@ use sha1::{Digest, Sha1};
 
 use crate::{arguments::init::get_object_path, utils::{read_content_file_from_path, real_path}};
 
-use super::{blob::Blob, tree::{self, Tree}};
+use super::{blob::Blob, tree::{Tree}};
 
 #[derive(Clone)]
 pub enum NodeType {
@@ -25,7 +25,7 @@ impl NodeType {
 
             let mut hashes: Vec<String> = Vec::new();
 
-            for node in tree.get_nodes() {
+            for node in tree.get_mut_nodes() {
                 let hash = Self::create_node_hash(node);
                 hashes.push(hash);
             }
@@ -53,6 +53,50 @@ impl NodeType {
         match self { 
             NodeType::Tree(tree) => tree.get_name().clone(),
             NodeType::Blob(blob) => blob.get_name().clone()
+        }
+    }
+    
+    pub fn get_hash(&self) -> String {
+        match self { 
+            NodeType::Tree(t) => t.get_hash().clone(),
+            NodeType::Blob(b) => b.get_hash().clone(),
+        }
+    }
+    
+    pub fn get_nodes(&self) -> Vec<NodeType> {
+        if let NodeType::Tree(tree) = self {
+            return tree.get_nodes()
+        }
+        return Vec::new()
+    }
+    
+    pub fn add_node(&mut self, node: NodeType){
+        if let NodeType::Tree(ref mut tree) = self {
+            tree.add_node(node);
+        }    
+    }
+    
+    pub fn remove_node(&mut self, node: &NodeType) {
+        if let NodeType::Tree(ref mut tree) = self {
+            tree.remove_node(&node);
+        }
+    }
+
+    pub fn replace(&mut self, node: NodeType) {
+        for n in self.get_nodes().iter() {
+            if n.get_name() == node.get_name() && Self::is_same_type(n,&node) {
+                self.remove_node(n);
+                self.add_node(node);
+                return;
+            }
+        }
+    }
+
+    pub fn is_same_type(n1: &NodeType, n2: &NodeType) -> bool {
+        match (n1, n2) {
+            (NodeType::Blob(_), NodeType::Blob(_)) => true,
+            (NodeType::Tree(_), NodeType::Tree(_)) => true,
+            _ => false,
         }
     }
 
@@ -95,7 +139,7 @@ impl NodeType {
         let node: NodeType = NodeType::Blob(file_blob);
     
         if let NodeType::Tree(ref mut tree) = self {
-            if !tree.exist_node(&node) {
+            if !tree.exist_node_with_same_name(node.get_name()) {
                 paths.remove(0);
                 tree.add_node(node);
             } else {
@@ -113,7 +157,7 @@ impl NodeType {
         let dir_tree = Tree::new(String::from(file_name), Vec::new(), String::from(""));
         let mut node = NodeType::Tree(dir_tree);
         if let NodeType::Tree(ref mut tree) = self {
-            if !tree.contains(&node) {
+            if !tree.exist_node_with_same_name_and_type(&node) {
                 paths.remove(0);
                 node._create_repository_tree(paths);
                 tree.add_node(node);
@@ -156,12 +200,44 @@ impl NodeType {
         }
     }
 
-    pub fn merge(r1: &mut NodeType, r2: NodeType, r3: NodeType){
-        if let NodeType::Tree(tree) = r2 {
-            for node in tree.get_nodes(){
+    pub fn find_node_with_same_name(reference: &NodeType, node: &NodeType) -> Option<NodeType> {
+        for n in node.get_nodes() {
+            if n.get_name() == reference.get_name() {
+                return Some(n);
             }
         }
+        return None
     }
+
+    pub fn merge(r1: NodeType, r2: NodeType) -> Option<NodeType> {
+        if r1 == r2 {
+            return None;
+        }
+
+        let mut new = r1.clone();
+
+        new.complete_node_from_another_node(r2.clone());
+
+        for node in new.get_nodes().iter_mut() {
+            if let Some(equi_node) = Self::find_node_with_same_name(&node, &r2) {
+                if let Some(merged_node) = Self::merge(node.clone(), equi_node) {
+                    new.replace(merged_node);
+                }
+            }
+        }
+
+        Some(new)
+    }
+    
+    fn complete_node_from_another_node(&mut self, node: NodeType) {
+        match self {
+            NodeType::Tree(tree) => {
+                tree.complete_node_from_another_node(node);
+            },
+            _ => ()
+        }
+    }
+    
 }
 
 impl PartialEq for NodeType {

@@ -3,7 +3,6 @@ use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
 use sha1::{Digest, Sha1};
 use crate::arguments::init::{find_info, find_objects, find_staged, get_object_path, open_object_file};
 use crate::utils::{write_hash_file, NULL_HASH};
-
 pub struct Commit {
     hash: String,
     tree: String,
@@ -96,6 +95,10 @@ impl Commit {
         write!(writer,"{}", self.description)?;
         Ok(())
     }
+    
+    pub fn delete_description_file(){
+        std::fs::remove_file("./.dit/commit").unwrap();
+    }
 
     pub fn get_commit_from_file(hash: String) -> Commit{
         let file = open_object_file(hash);
@@ -111,11 +114,7 @@ impl Commit {
 
         let mut description: String = Default::default();
         reader.read_to_string(&mut description).expect("Failed to read commit file");
-
-        println!("{tree}");
-        println!("{parent}");
-        println!("{description}");
     
         Commit::new(String::from(tree), String::from(parent), description)
-    } 
+    }
 }
