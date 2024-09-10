@@ -1,8 +1,9 @@
 use std::{fs::File, io::{BufRead, BufReader, BufWriter, Read, Write}, path::PathBuf};
 
 use crate::arguments::init::open_object_file;
-
-use super::{blob::Blob, node_type::NodeType, BLOB};
+use crate::objects::file_objects::blob::Blob;
+use crate::objects::file_objects::node_type::NodeType;
+use crate::objects::BLOB;
 
 #[derive(Clone)]
 pub struct Tree {

@@ -1,5 +1,5 @@
-use crate::objects::node_type::NodeType;
-use crate::objects::tree::Tree;
+use crate::objects::file_objects::node_type::NodeType;
+use crate::objects::file_objects::tree::Tree;
 use crate::utils::{NULL_HASH, write_hash_file};
 use std::fs::{ self, OpenOptions};
 use std::io;

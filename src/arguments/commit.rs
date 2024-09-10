@@ -2,8 +2,8 @@ use std::io;
 use std::process::Command;
 use crate::arguments::init::{find_dit, find_objects, get_staged_hash};
 use crate::objects::commit::Commit;
-use crate::objects::node_type::NodeType;
-use crate::objects::tree::Tree;
+use crate::objects::file_objects::node_type::NodeType;
+use crate::objects::file_objects::tree::Tree;
 use crate::utils::{read_content_file_from_path, real_path, NULL_HASH};
 
 use super::delete::get_deleted_elements;

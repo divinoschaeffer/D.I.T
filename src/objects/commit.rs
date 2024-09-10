@@ -1,10 +1,14 @@
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
+use ptree2::print_tree;
 use sha1::{Digest, Sha1};
-use crate::arguments::init::{find_info, find_objects, find_staged, get_object_path, open_object_file};
+use crate::arguments::init::{find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file};
 use crate::objects::branch::Branch;
+use crate::objects::node::Node;
 use crate::utils::{write_hash_file, NULL_HASH};
+
+#[derive(Clone)]
 pub struct Commit {
     hash: String,
     tree: String,
@@ -54,7 +58,7 @@ impl Commit {
     }
 
     pub fn display(&self) {
-        println!("hash: {}, parent: {}, tree: {}, description: {}", self.hash, self.parent, self.tree, self.description);
+        println!("hash: {} \n description: {}", self.hash, self.description);
     }
 
     pub fn transcript_commit_to_file(&self){
@@ -135,5 +139,38 @@ impl Commit {
         reader.read_to_string(&mut description).expect("Failed to read commit file");
     
         Commit::new(String::from(tree), String::from(parent), description)
+    }
+    
+    pub fn create_commit_tree(branch: Branch) -> Node{
+        let name_branch = branch.get_name();
+        
+        let branch_path = find_refs().join(name_branch);
+        let file = OpenOptions::new().read(true).open(branch_path).unwrap();
+        
+        let reader = BufReader::new(file);
+        
+        let mut root = None;
+        
+        for line in reader.lines() {
+            let content = line.unwrap();
+            let hashes: Vec<_> = content.split_whitespace().collect();
+            
+            let commit = Commit::get_commit_from_file(hashes[1].to_string());
+            let node = Node::new(commit, Vec::new());
+            
+            if root.is_none() {
+                root = Some(node.clone());
+            }
+            
+            root.as_mut().unwrap().add_child_to_tree(&node);
+        }
+        
+        root.unwrap_or_else(|| Node::new(Commit::new(NULL_HASH.to_string(), NULL_HASH.to_string(), NULL_HASH.to_string()), Vec::new()))
+    }
+    
+    pub fn display_commit_tree(){
+        let root = Commit::create_commit_tree(Branch::get_branch_from_file());
+        
+        print_tree(&root).expect("Error while displaying commit tree");
     }
 }

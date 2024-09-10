@@ -76,6 +76,10 @@ pub fn find_objects() -> PathBuf{
     dit_path.join("objects")
 }
 
+pub fn find_refs() -> PathBuf{
+    find_dit().unwrap().join("refs")
+}
+
 pub fn find_staged() -> PathBuf {
     let dit_path = find_dit().unwrap();
     dit_path.join("staged")

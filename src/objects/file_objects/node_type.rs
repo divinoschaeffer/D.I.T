@@ -4,7 +4,8 @@ use sha1::{Digest, Sha1};
 
 use crate::{arguments::init::get_object_path, utils::{read_content_file_from_path, real_path}};
 
-use super::{blob::Blob, tree::{Tree}};
+use crate::objects::file_objects::tree::Tree;
+use crate::objects::file_objects::blob::Blob;
 
 #[derive(Clone)]
 pub enum NodeType {

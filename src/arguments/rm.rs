@@ -2,8 +2,8 @@ use std::fs::OpenOptions;
 use std::io;
 use std::path::Path;
 use crate::arguments::init::{find_dit, get_staged_hash};
-use crate::objects::node_type::NodeType;
-use crate::objects::tree::Tree;
+use crate::objects::file_objects::node_type::NodeType;
+use crate::objects::file_objects::tree::Tree;
 use crate::utils::{NULL_HASH, real_path, write_hash_file};
 
 pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {

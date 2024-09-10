@@ -6,6 +6,7 @@ use dit::arguments::commit::commit;
 use dit::arguments::delete::delete;
 use dit::arguments::rm;
 use dit::arguments::message::message;
+use dit::arguments::show::show_commit;
 
 fn main() {
     let matches = Command::new("dit")
@@ -24,12 +25,14 @@ fn main() {
                 .short('a')
                 .long("add")
                 .num_args(0..)
-                .help("add file or files to stage")
+                .value_name("FILE")
+                .help("add files or directories to stage")
         )
         .arg(
             Arg::new("rm")
                 .long("rm")
                 .num_args(0..)
+                .value_name("FILE")
                 .help("suppressed file or files from stage")
         )
         .arg(
@@ -44,14 +47,22 @@ fn main() {
                 .short('m')
                 .long("message")
                 .num_args(1)
+                .value_name("DESCRIPTION")
                 .help("commit message")
         )
         .arg(
             Arg::new("delete")
                 .short('d')
                 .long("delete")
+                .value_name("FILE")
                 .num_args(0..)
                 .help("suppress commited elements")
+        )
+        .arg(
+            Arg::new("commit_tree")
+                .long("showcommit")
+                .num_args(0)
+                .help("chow commit tree")
         )
         .get_matches();
 
@@ -103,6 +114,14 @@ fn main() {
         match message(mes.parse().unwrap()) { 
             Ok(()) => (),
             Err(e) => panic!("Error while writing message: {}", e)
+        }
+    }
+    
+    // SHOWCOMMIT
+    if matches.get_flag("commit_tree"){
+        match show_commit() {
+            Ok(()) => (),
+            Err(e) => panic!("Error while displaying commit tree: {}", e)
         }
     }
 }

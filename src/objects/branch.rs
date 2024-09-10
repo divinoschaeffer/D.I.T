@@ -1,8 +1,8 @@
-use std::fs::File;
+use std::fs::{File};
 use std::io;
 use std::os::unix::fs::FileExt;
 use crate::arguments::init::{find_dit, find_info, get_head_hash};
-use crate::utils::{ write_footer_file, write_hash_file, write_header_file};
+use crate::utils::{write_footer_file, write_hash_file, write_header_file};
 
 pub struct Branch {
     head: String,
