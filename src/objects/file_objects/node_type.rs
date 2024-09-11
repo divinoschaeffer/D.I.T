@@ -163,10 +163,13 @@ impl NodeType {
                 node._create_repository_tree(paths);
                 tree.add_node(node);
             } else {
-                if let Some(old_node) = tree.find_node(&node) {
+                if let Some(old_node) = tree.find_node_by_name(node.get_name()) {
                     paths.remove(0);
                     old_node._create_repository_tree(paths);
                 } else {
+                    node.display();
+                    tree.display();
+                    println!("{file_name}");
                     panic!("Error while finding directory already existing");
                 }
             }

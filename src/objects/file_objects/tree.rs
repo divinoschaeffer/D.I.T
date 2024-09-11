@@ -27,7 +27,7 @@ impl Tree {
     }
 
     pub fn find_node(&mut self, node: &NodeType) -> Option<&mut NodeType>{
-        self.nodes.iter_mut().find(|x| *x == node && Self::is_tree(node))
+        self.nodes.iter_mut().find(|x| *x == node && Tree::is_tree(node))
     }
 
     pub fn find_node_index(&self, node: &NodeType) -> Option<usize> {
@@ -36,7 +36,7 @@ impl Tree {
 
     pub fn find_node_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
         self.nodes.iter_mut().find(|x| {
-            *x.get_name() == file_name
+            *x.get_name() == file_name && Tree::is_tree(x)
         })
     }
 

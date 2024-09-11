@@ -62,7 +62,7 @@ fn main() {
             Arg::new("commit_tree")
                 .long("showcommit")
                 .num_args(0)
-                .help("chow commit tree")
+                .help("show commit tree")
         )
         .get_matches();
 

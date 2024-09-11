@@ -115,7 +115,7 @@ impl Commit {
             .open(branch_path)?;
         
         let mut writer = BufWriter::new(file);
-        writeln!(writer, "{} {}", self.parent, self.hash)?;
+        writeln!(writer, "{}",self.hash)?;
         Ok(())
     }
     
@@ -142,21 +142,13 @@ impl Commit {
     }
     
     pub fn create_commit_tree(branch: Branch) -> Node{
-        let name_branch = branch.get_name();
-        
-        let branch_path = find_refs().join(name_branch);
-        let file = OpenOptions::new().read(true).open(branch_path).unwrap();
-        
-        let reader = BufReader::new(file);
+        let commits = Self::get_commit_list(branch);
         
         let mut root = None;
         
-        for line in reader.lines() {
-            let content = line.unwrap();
-            let hashes: Vec<_> = content.split_whitespace().collect();
+        for commit in commits.iter() {
             
-            let commit = Commit::get_commit_from_file(hashes[1].to_string());
-            let node = Node::new(commit, Vec::new());
+            let node = Node::new(commit.clone(), Vec::new());
             
             if root.is_none() {
                 root = Some(node.clone());
@@ -166,6 +158,37 @@ impl Commit {
         }
         
         root.unwrap_or_else(|| Node::new(Commit::new(NULL_HASH.to_string(), NULL_HASH.to_string(), NULL_HASH.to_string()), Vec::new()))
+    }
+    
+    
+    pub fn get_commit_list(branch: Branch) -> Vec<Commit>{
+        let name_branch = branch.get_name();
+
+        let branch_path = find_refs().join(name_branch);
+        let file = OpenOptions::new().read(true).open(branch_path).unwrap();
+
+        let reader = BufReader::new(file);
+
+        let mut commits: Vec<Commit> = Vec::new();
+
+        for line in reader.lines() {
+            let content = line.unwrap();
+
+            let commit = Commit::get_commit_from_file(content);
+            commits.push(commit);
+        }
+        
+        commits
+    }
+    pub fn commit_exist(hash: String) -> bool {
+        let branch = Branch::get_branch_from_file();
+        let commits = Self::get_commit_list(branch);
+        for c in commits.iter() {
+            if *c.get_hash() == hash {
+                return true
+            }
+        }
+        return false
     }
     
     pub fn display_commit_tree(){
