@@ -141,8 +141,12 @@ impl Commit {
         Commit::new(String::from(tree), String::from(parent), description)
     }
     
-    pub fn create_commit_tree(branch: Branch) -> Node{
+    pub fn create_commit_tree(branch: Branch) -> Option<Node>{
         let commits = Self::get_commit_list(branch);
+        
+        if commits.is_empty() {
+            return None
+        }
         
         let mut root = None;
         
@@ -157,7 +161,7 @@ impl Commit {
             root.as_mut().unwrap().add_child_to_tree(&node);
         }
         
-        root.unwrap_or_else(|| Node::new(Commit::new(NULL_HASH.to_string(), NULL_HASH.to_string(), NULL_HASH.to_string()), Vec::new()))
+        return root
     }
     
     
@@ -193,7 +197,9 @@ impl Commit {
     
     pub fn display_commit_tree(){
         let root = Commit::create_commit_tree(Branch::get_branch_from_file());
-        
-        print_tree(&root).expect("Error while displaying commit tree");
+        match root { 
+            Some(tree) => print_tree(&tree).expect("Error while displaying commit tree"),
+            None => println!("No commit on this branch")
+        }
     }
 }
