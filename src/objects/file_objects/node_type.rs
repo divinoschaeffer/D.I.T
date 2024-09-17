@@ -144,9 +144,9 @@ impl NodeType {
                 paths.remove(0);
                 tree.add_node(node);
             } else {
-                if let Some(old_blob) = tree.find_node(&node) {
+                if let Some(old_blob) = tree.find_blob_by_name(node.get_name()) {
                     let to_remove = old_blob.clone();
-                    tree.remove_node(&to_remove);
+                    tree.remove_blob_same_name(to_remove.get_name());
                 }
                 paths.remove(0);
                 tree.add_node(node);
@@ -163,13 +163,10 @@ impl NodeType {
                 node._create_repository_tree(paths);
                 tree.add_node(node);
             } else {
-                if let Some(old_node) = tree.find_node_by_name(node.get_name()) {
+                if let Some(old_node) = tree.find_tree_by_name(node.get_name()) {
                     paths.remove(0);
                     old_node._create_repository_tree(paths);
                 } else {
-                    node.display();
-                    tree.display();
-                    println!("{file_name}");
                     panic!("Error while finding directory already existing");
                 }
             }

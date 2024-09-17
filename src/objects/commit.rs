@@ -5,6 +5,7 @@ use ptree2::print_tree;
 use sha1::{Digest, Sha1};
 use crate::arguments::init::{find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file};
 use crate::objects::branch::Branch;
+use crate::objects::file_objects::tree::Tree;
 use crate::objects::node::Node;
 use crate::utils::{write_hash_file, NULL_HASH};
 
@@ -184,11 +185,11 @@ impl Commit {
         
         commits
     }
-    pub fn commit_exist(hash: String) -> bool {
+    pub fn commit_exist(hash: &String) -> bool {
         let branch = Branch::get_branch_from_file();
         let commits = Self::get_commit_list(branch);
         for c in commits.iter() {
-            if *c.get_hash() == hash {
+            if *c.get_hash() == *hash {
                 return true
             }
         }
@@ -201,5 +202,11 @@ impl Commit {
             Some(tree) => print_tree(&tree).expect("Error while displaying commit tree"),
             None => println!("No commit on this branch")
         }
+    }
+    
+    pub fn recreate_files(&self){
+        let mut tree = Tree::default();
+        tree.get_tree_from_file(self.tree.clone());
+        tree.display();
     }
 }

@@ -21,13 +21,13 @@ pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
         println!("You need to specify files to add");
     } else if staged_hash == NULL_HASH {
         
-        let tree = Tree::new(String::from(""), Vec::new(), String::from(""));
+        let tree = Tree::default();
         let mut root: NodeType = NodeType::Tree(tree);
 
         add_elements(&new_elements, &object_path, &staged_path, &mut root);
 
     } else {
-        let mut tree = Tree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
+        let mut tree = Tree::default();
         tree.get_tree_from_file(staged_hash);
         let mut root = NodeType::Tree(tree);
 

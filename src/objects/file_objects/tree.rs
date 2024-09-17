@@ -1,10 +1,9 @@
 use std::{fs::File, io::{BufRead, BufReader, BufWriter, Read, Write}, path::PathBuf};
 
 use crate::arguments::init::open_object_file;
+use crate::objects::BLOB;
 use crate::objects::file_objects::blob::Blob;
 use crate::objects::file_objects::node_type::NodeType;
-use crate::objects::BLOB;
-
 #[derive(Clone)]
 pub struct Tree {
     hash: String,
@@ -21,6 +20,10 @@ impl Tree {
         };
         tree
     }
+    
+    pub fn default() -> Tree{
+        Tree::new(String::from(""), Vec::new(), String::from(""))
+    } 
 
     pub fn add_node(&mut self, node: NodeType) {
         self.nodes.push(node)
@@ -36,7 +39,19 @@ impl Tree {
 
     pub fn find_node_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
         self.nodes.iter_mut().find(|x| {
+            *x.get_name() == file_name
+        })
+    }
+    
+    pub fn find_tree_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
+        self.nodes.iter_mut().find(|x| {
             *x.get_name() == file_name && Tree::is_tree(x)
+        })
+    }
+    
+    pub fn find_blob_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
+        self.nodes.iter_mut().find(|x| {
+            *x.get_name() == file_name && Blob::is_blob(x)
         })
     }
 
@@ -51,6 +66,12 @@ impl Tree {
 
     pub fn remove_node(&mut self, node: &NodeType) {
         if let Some(index) = self.find_node_index(node) {
+            self.nodes.remove(index);
+        }
+    }
+
+    pub fn remove_blob_same_name(&mut self, name: String) {
+        if let Some(index) = self.nodes.iter().position(|node| node.get_name()== name && Blob::is_blob(&node)) {
             self.nodes.remove(index);
         }
     }

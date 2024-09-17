@@ -1,6 +1,7 @@
 use std::{fs::File, io::{BufWriter, Write}};
 
 use sha1::{Digest, Sha1};
+use crate::objects::file_objects::node_type::NodeType;
 
 #[derive(Clone)]
 pub struct Blob {
@@ -62,6 +63,13 @@ impl Blob {
             .unwrap_or_else(|e| {
                 panic!("Error while writing to file: {e}");
             });
+    }
+    
+    pub fn is_blob(node: &NodeType) -> bool {
+        match node {
+            NodeType::Blob(_) => true,
+            _ => false
+        }
     }
 }
 

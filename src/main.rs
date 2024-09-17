@@ -6,6 +6,7 @@ use dit::arguments::commit::commit;
 use dit::arguments::delete::delete;
 use dit::arguments::rm;
 use dit::arguments::message::message;
+use dit::arguments::revert::revert;
 use dit::arguments::show::show_commit;
 
 fn main() {
@@ -63,6 +64,14 @@ fn main() {
                 .long("showcommit")
                 .num_args(0)
                 .help("show commit tree")
+        )
+        .arg(
+            Arg::new("revert")
+                .long("revert")
+                .short('r')
+                .num_args(1)
+                .value_name("COMMIT ID")
+                .help("revert files to their state at a specified commit.")
         )
         .get_matches();
 
@@ -122,6 +131,13 @@ fn main() {
         match show_commit() {
             Ok(()) => (),
             Err(e) => panic!("Error while displaying commit tree: {}", e)
+        }
+    }
+    
+    if let Some(hash) = matches.get_one::<String>("revert") {
+        match revert(hash.to_string()) { 
+            Ok(()) => (),
+            Err(e) => panic!("Error while reverting to the previous state: {e}")
         }
     }
 }
