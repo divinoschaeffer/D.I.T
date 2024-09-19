@@ -107,7 +107,7 @@ impl Commit {
     }
     
     fn reference_commit(&self) -> Result<(), io::Error> {
-        let branch = Branch::get_branch_from_file();
+        let branch = Branch::get_current_branch();
         let branch_path = format!("./.dit/refs/{}", branch.get_name());
 
         let file = OpenOptions::new()
@@ -144,7 +144,7 @@ impl Commit {
     }
     
     pub fn create_commit_tree(branch: Branch) -> Option<Node>{
-        let commits = Self::get_commit_list(branch);
+        let commits = Self::get_commit_list(branch.get_name().to_owned());
 
         if commits.is_empty() {
             return None
@@ -167,10 +167,9 @@ impl Commit {
     }
 
 
-    pub fn get_commit_list(branch: Branch) -> Vec<Commit>{
-        let name_branch = branch.get_name();
+    pub fn get_commit_list(branch_name: String) -> Vec<Commit>{
 
-        let branch_path = find_refs().join(name_branch);
+        let branch_path = find_refs().join(branch_name);
         let file = OpenOptions::new().read(true).open(branch_path).unwrap();
 
         let reader = BufReader::new(file);
@@ -187,8 +186,8 @@ impl Commit {
         commits
     }
     pub fn commit_exist(hash: &String) -> bool {
-        let branch = Branch::get_branch_from_file();
-        let commits = Self::get_commit_list(branch);
+        let branch = Branch::get_current_branch();
+        let commits = Self::get_commit_list(branch.get_name().to_string());
         for c in commits.iter() {
             if *c.get_hash() == *hash {
                 return true
@@ -198,7 +197,7 @@ impl Commit {
     }
 
     pub fn display_commit_tree(){
-        let root = Commit::create_commit_tree(Branch::get_branch_from_file());
+        let root = Commit::create_commit_tree(Branch::get_current_branch());
         match root {
             Some(tree) => print_tree(&tree).expect("Error while displaying commit tree"),
             None => println!("No commit on this branch")
@@ -208,7 +207,14 @@ impl Commit {
     pub fn recreate_files(&self){
         let mut tree = Tree::default();
         tree.get_tree_from_file(self.tree.clone());
-        let path = PathBuf::from("./");
+        let path = PathBuf::from("./test");
         tree.create_directory_from_tree(path);
+    }
+
+    pub fn delete_files(&self){
+        let mut tree = Tree::default();
+        tree.get_tree_from_file(self.tree.clone());
+        let path = PathBuf::from("./test");
+        tree.delete_directory(path);
     }
 }

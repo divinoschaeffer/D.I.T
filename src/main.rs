@@ -63,6 +63,7 @@ fn main() {
         .arg(
             Arg::new("commit_tree")
                 .long("showcommit")
+                .alias("sc")
                 .num_args(0)
                 .help("show commit tree")
         )
@@ -76,11 +77,18 @@ fn main() {
         )
         .arg(
             Arg::new("new_branch")
-                .long("new_banch")
+                .long("newbanch")
                 .alias("nb")
                 .num_args(1)
                 .value_name("NAME")
                 .help("create a new branch and switch to the branch")
+        )
+        .arg(
+            Arg::new("checkout")
+                .long("checkout")
+                .num_args(1)
+                .value_name("NAME")
+                .help("change the current branch")
         )
         .get_matches();
 

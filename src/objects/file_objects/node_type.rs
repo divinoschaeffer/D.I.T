@@ -246,6 +246,13 @@ impl NodeType {
         }
     }
     
+    pub fn delete_element(&mut self, path_buf: PathBuf){
+        match self{
+            NodeType::Tree(t) => t.delete_directory(path_buf),
+            NodeType::Blob(b) => b.delete_file(path_buf)
+        }
+    }
+    
 }
 
 impl PartialEq for NodeType {

@@ -89,6 +89,15 @@ impl Blob {
         let mut writer = BufWriter::new(file);
         write!(writer, "{}", self.content.to_owned()).unwrap();
     }
+    
+    pub fn delete_file(&self, directory_path: PathBuf){
+        let filename = self.name.to_owned();
+        let file_path = directory_path.join(filename);
+
+        if file_path.is_file() {
+            fs::remove_file(file_path).unwrap();
+        }
+    }
 }
 
 impl PartialEq for Blob {

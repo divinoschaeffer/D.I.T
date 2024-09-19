@@ -2,7 +2,8 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{Write, BufWriter};
 use std::os::unix::fs::FileExt;
-use crate::arguments::init::{find_dit, find_info, get_head_hash};
+use crate::arguments::init::{find_dit, find_info, find_refs, get_head_hash};
+use crate::objects::commit::Commit;
 use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
 
 pub struct Branch {
@@ -60,7 +61,7 @@ impl Branch {
         Ok(())
     }
     
-    pub fn get_branch_from_file() -> Branch {
+    pub fn get_current_branch() -> Branch {
         let head = get_head_hash();
         let info = find_info();
 

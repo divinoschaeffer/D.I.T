@@ -202,12 +202,27 @@ impl Tree {
     pub fn create_directory_from_tree(&mut self, directory_path: PathBuf) {
         let name = self.name.to_owned();
         let path = directory_path.join(name);
+        
         if self.name != "" && !path.is_dir(){
             fs::create_dir(path.clone()).unwrap();
         }
         
         for n in self.nodes.iter_mut() {
             n.create_element(path.to_owned());
+        }
+    }
+    
+    pub fn delete_directory(&mut self, directory_path: PathBuf) {
+        let name = self.name.to_owned();
+        let path = directory_path.join(name);
+        
+        if self.name == "" {
+            for n in self.nodes.iter_mut() {
+                n.delete_element(path.clone());
+            }
+        }
+        else if path.is_dir() {
+            fs::remove_dir_all(path).unwrap();
         }
     }
 }
