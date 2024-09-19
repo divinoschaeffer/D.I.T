@@ -3,6 +3,7 @@ use clap::builder::ValueRange;
 use dit::arguments;
 use dit::arguments::add;
 use dit::arguments::commit::commit;
+use dit::arguments::create_branch::{ new_branch};
 use dit::arguments::delete::delete;
 use dit::arguments::rm;
 use dit::arguments::message::message;
@@ -73,6 +74,14 @@ fn main() {
                 .value_name("COMMIT ID")
                 .help("revert files to their state at a specified commit.")
         )
+        .arg(
+            Arg::new("new_branch")
+                .long("new_banch")
+                .alias("nb")
+                .num_args(1)
+                .value_name("NAME")
+                .help("create a new branch and switch to the branch")
+        )
         .get_matches();
 
     // INIT
@@ -134,10 +143,19 @@ fn main() {
         }
     }
     
+    // REVERT
     if let Some(hash) = matches.get_one::<String>("revert") {
         match revert(hash.to_string()) { 
             Ok(()) => (),
             Err(e) => panic!("Error while reverting to the previous state: {e}")
+        }
+    }
+    
+    // CREATE BRANCH
+    if let Some(name) = matches.get_one::<String>("new_branch"){
+        match new_branch(name) {
+            Ok(()) => (),
+            Err(e) => panic!("Error while creating new branch: {e}")
         }
     }
 }

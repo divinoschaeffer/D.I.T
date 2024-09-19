@@ -1,8 +1,9 @@
-use std::fs::{File};
+use std::fs::{File, OpenOptions};
 use std::io;
+use std::io::{Write, BufWriter};
 use std::os::unix::fs::FileExt;
 use crate::arguments::init::{find_dit, find_info, get_head_hash};
-use crate::utils::{write_footer_file, write_hash_file, write_header_file};
+use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
 
 pub struct Branch {
     head: String,
@@ -18,11 +19,30 @@ impl Branch {
         &self.head
     }
     
-    pub fn create_branch(name: String, head: String) -> Branch{
+    pub fn new_branch(name: String, head: String) -> Branch{
         let ref_path = find_dit().unwrap().join("refs");
-        File::create(ref_path.join(name.clone())).unwrap();
+        let file_path = ref_path.join(name.clone());
+        
+        if file_path.is_file() {
+            panic!("Can't have two branch with same name");
+        }
+        
+        File::create(file_path).unwrap();
         
         Self::set_info_file(name.clone(), head.clone()).unwrap();
+        
+        if head != NULL_HASH {
+            let branch_path = format!("./.dit/refs/{}", name);
+            
+            let file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .create(true)
+                .open(branch_path).unwrap();
+
+            let mut writer = BufWriter::new(file);
+            writeln!(writer, "{}",head).unwrap();
+        }
         
         Branch {
             head,

@@ -109,13 +109,13 @@ impl Commit {
     fn reference_commit(&self) -> Result<(), io::Error> {
         let branch = Branch::get_branch_from_file();
         let branch_path = format!("./.dit/refs/{}", branch.get_name());
-        
+
         let file = OpenOptions::new()
             .write(true)
             .append(true)
             .create(true)
             .open(branch_path)?;
-        
+
         let mut writer = BufWriter::new(file);
         writeln!(writer, "{}",self.hash)?;
         Ok(())
@@ -145,7 +145,7 @@ impl Commit {
     
     pub fn create_commit_tree(branch: Branch) -> Option<Node>{
         let commits = Self::get_commit_list(branch);
-        
+
         if commits.is_empty() {
             return None
         }
@@ -153,7 +153,7 @@ impl Commit {
         let mut root = None;
         
         for commit in commits.iter() {
-            
+
             let node = Node::new(commit.clone(), Vec::new());
             
             if root.is_none() {
@@ -165,8 +165,8 @@ impl Commit {
         
         return root
     }
-    
-    
+
+
     pub fn get_commit_list(branch: Branch) -> Vec<Commit>{
         let name_branch = branch.get_name();
 
@@ -183,7 +183,7 @@ impl Commit {
             let commit = Commit::get_commit_from_file(content);
             commits.push(commit);
         }
-        
+
         commits
     }
     pub fn commit_exist(hash: &String) -> bool {
@@ -196,15 +196,15 @@ impl Commit {
         }
         return false
     }
-    
+
     pub fn display_commit_tree(){
         let root = Commit::create_commit_tree(Branch::get_branch_from_file());
-        match root { 
+        match root {
             Some(tree) => print_tree(&tree).expect("Error while displaying commit tree"),
             None => println!("No commit on this branch")
         }
     }
-    
+
     pub fn recreate_files(&self){
         let mut tree = Tree::default();
         tree.get_tree_from_file(self.tree.clone());

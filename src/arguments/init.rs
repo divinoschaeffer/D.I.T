@@ -25,7 +25,7 @@ pub fn init_repository() -> Result<(), io::Error> {
 fn init_info_file() -> Result<(), io::Error> {
     File::create("./.dit/info")?;
     
-    Branch::create_branch(String::from("main"),String::from(NULL_HASH));
+    Branch::new_branch(String::from("main"), String::from(NULL_HASH));
 
     Ok(())
 }
