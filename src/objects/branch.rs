@@ -2,8 +2,7 @@ use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{Write, BufWriter};
 use std::os::unix::fs::FileExt;
-use crate::arguments::init::{find_dit, find_info, find_refs, get_head_hash};
-use crate::objects::commit::Commit;
+use crate::arguments::init::{find_dit, find_info, get_head_hash};
 use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
 
 pub struct Branch {
@@ -51,7 +50,7 @@ impl Branch {
         }
     }
 
-    fn set_info_file(name: String, head: String) -> Result<(), io::Error> {
+    pub fn set_info_file(name: String, head: String) -> Result<(), io::Error> {
         let file = File::create("./.dit/info")?;
 
         write_header_file(String::from("HEAD"), &file, 0)?;

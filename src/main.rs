@@ -1,7 +1,8 @@
 use clap::{Arg, Command};
-use clap::builder::ValueRange;
+use clap::builder::{ValueRange};
 use dit::arguments;
 use dit::arguments::add;
+use dit::arguments::checkout::checkout;
 use dit::arguments::commit::commit;
 use dit::arguments::create_branch::{ new_branch};
 use dit::arguments::delete::delete;
@@ -164,6 +165,14 @@ fn main() {
         match new_branch(name) {
             Ok(()) => (),
             Err(e) => panic!("Error while creating new branch: {e}")
+        }
+    }
+    
+    // CHECKOUT
+    if let Some(name) = matches.get_one::<String>("checkout"){
+        match checkout(name) {
+            Ok(()) => (),
+            Err(e) => panic!("Error while changing branch : {e}")
         }
     }
 }

@@ -7,4 +7,4 @@ pub mod message;
 pub mod show;
 pub mod revert;
 pub mod create_branch;
-mod checkout;
+pub mod checkout;
