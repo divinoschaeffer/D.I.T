@@ -1,5 +1,6 @@
-use std::{fs::File, io::{BufWriter, Write}};
-
+use std::{fs, fs::File, io::{BufWriter, Write}};
+use std::fs::OpenOptions;
+use std::path::PathBuf;
 use sha1::{Digest, Sha1};
 use crate::objects::file_objects::node_type::NodeType;
 
@@ -70,6 +71,23 @@ impl Blob {
             NodeType::Blob(_) => true,
             _ => false
         }
+    }
+
+    pub fn create_file_from_blob(&self, directory_path: PathBuf){
+        let filename = self.name.to_owned();
+        let file_path = directory_path.join(filename);
+        
+        if file_path.is_file() {
+            fs::remove_file(file_path.clone()).unwrap();
+        }
+        
+        let file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(file_path).unwrap();
+        
+        let mut writer = BufWriter::new(file);
+        write!(writer, "{}", self.content.to_owned()).unwrap();
     }
 }
 

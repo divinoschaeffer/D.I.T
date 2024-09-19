@@ -1,6 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
+use std::path::PathBuf;
 use ptree2::print_tree;
 use sha1::{Digest, Sha1};
 use crate::arguments::init::{find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file};
@@ -207,6 +208,7 @@ impl Commit {
     pub fn recreate_files(&self){
         let mut tree = Tree::default();
         tree.get_tree_from_file(self.tree.clone());
-        tree.display();
+        let path = PathBuf::from("./");
+        tree.create_directory_from_tree(path);
     }
 }

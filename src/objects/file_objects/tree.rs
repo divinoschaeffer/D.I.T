@@ -1,4 +1,4 @@
-use std::{fs::File, io::{BufRead, BufReader, BufWriter, Read, Write}, path::PathBuf};
+use std::{fs, fs::File, io::{BufRead, BufReader, BufWriter, Read, Write}, path::PathBuf};
 
 use crate::arguments::init::open_object_file;
 use crate::objects::BLOB;
@@ -20,10 +20,10 @@ impl Tree {
         };
         tree
     }
-    
+
     pub fn default() -> Tree{
         Tree::new(String::from(""), Vec::new(), String::from(""))
-    } 
+    }
 
     pub fn add_node(&mut self, node: NodeType) {
         self.nodes.push(node)
@@ -42,13 +42,13 @@ impl Tree {
             *x.get_name() == file_name
         })
     }
-    
+
     pub fn find_tree_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
         self.nodes.iter_mut().find(|x| {
             *x.get_name() == file_name && Tree::is_tree(x)
         })
     }
-    
+
     pub fn find_blob_by_name(&mut self, file_name: String) -> Option<&mut NodeType> {
         self.nodes.iter_mut().find(|x| {
             *x.get_name() == file_name && Blob::is_blob(x)
@@ -198,7 +198,18 @@ impl Tree {
             node.transcript_to_files( &objects_path);
         }
     }
-
+    
+    pub fn create_directory_from_tree(&mut self, directory_path: PathBuf) {
+        let name = self.name.to_owned();
+        let path = directory_path.join(name);
+        if self.name != "" && !path.is_dir(){
+            fs::create_dir(path.clone()).unwrap();
+        }
+        
+        for n in self.nodes.iter_mut() {
+            n.create_element(path.to_owned());
+        }
+    }
 }
 
 impl PartialEq for Tree {

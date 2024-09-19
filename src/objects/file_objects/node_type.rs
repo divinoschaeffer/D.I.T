@@ -239,6 +239,13 @@ impl NodeType {
         }
     }
     
+    pub fn create_element(&mut self, path_buf: PathBuf){
+        match self{
+            NodeType::Tree(t) => t.create_directory_from_tree(path_buf),
+            NodeType::Blob(b) => b.create_file_from_blob(path_buf)
+        }
+    }
+    
 }
 
 impl PartialEq for NodeType {
