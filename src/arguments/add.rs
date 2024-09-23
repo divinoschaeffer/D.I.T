@@ -6,6 +6,10 @@ use std::io;
 use std::path::PathBuf;
 use crate::arguments::init::{find_dit, get_staged_hash};
 
+/* 
+HAAHHAHAHAHAHAAHAHAHAHAH
+HAHAHAAHHAHAAHAH
+ */
 pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
     let dit_path = find_dit().unwrap_or_else(|| {
         panic!("dit is not initialize");
@@ -23,7 +27,11 @@ pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
         
         let tree = Tree::default();
         let mut root: NodeType = NodeType::Tree(tree);
-
+/*
+ BABABABABABAB
+ BABABABABABAB
+ BABABABABABAB
+ */
         add_elements(&new_elements, &object_path, &staged_path, &mut root);
 
     } else {
@@ -36,12 +44,12 @@ pub fn add(elements: Vec<&String>) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn add_elements(elements: &Vec<String>, object_path: &PathBuf, staged_path: &PathBuf, mut root: &mut NodeType) {
+fn add_elements(elements: &Vec<String>, object_path: &PathBuf, staged_path: &PathBuf, root: &mut NodeType) {
     for element in elements {
         root.create_repository_tree( element);
     }
 
-    let root_hash = NodeType::create_node_hash(&mut root);
+    let root_hash = root.create_node_hash();
     
     root.transcript_to_files(&object_path);
 

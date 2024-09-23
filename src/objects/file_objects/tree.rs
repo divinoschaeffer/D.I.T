@@ -4,7 +4,9 @@ use crate::arguments::init::open_object_file;
 use crate::objects::BLOB;
 use crate::objects::file_objects::blob::Blob;
 use crate::objects::file_objects::node_type::NodeType;
+
 #[derive(Clone)]
+#[derive(Debug)]
 pub struct Tree {
     hash: String,
     name: String,
@@ -21,7 +23,7 @@ impl Tree {
         tree
     }
 
-    pub fn default() -> Tree{
+    pub fn default() -> Tree {
         Tree::new(String::from(""), Vec::new(), String::from(""))
     }
 
@@ -56,13 +58,12 @@ impl Tree {
     }
 
     pub fn replace_node(&mut self, node: NodeType) {
-        for n in self.nodes.iter_mut() {
-            if n.get_name() == node.get_name() {
-                *n = node;
-                return;
-            }
+        if let Some(existing_node) = self.nodes.iter_mut().find(|n| n.get_name() == node.get_name() && NodeType::is_same_type(n, &node)) {
+            *existing_node = node;
         }
     }
+
+
 
     pub fn remove_node(&mut self, node: &NodeType) {
         if let Some(index) = self.find_node_index(node) {

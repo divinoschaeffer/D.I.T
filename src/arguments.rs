@@ -8,3 +8,4 @@ pub mod show;
 pub mod revert;
 pub mod create_branch;
 pub mod checkout;
+pub mod merge;

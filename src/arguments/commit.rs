@@ -1,4 +1,4 @@
-use std::io;
+use std::{io};
 use std::process::Command;
 use crate::arguments::init::{find_dit, find_objects, get_staged_hash};
 use crate::objects::commit::Commit;
@@ -74,8 +74,8 @@ pub fn commit() -> Result<(), io::Error>{
             None => ()
         }
 
-        let mut result = NodeType::merge(last_commit_root, staged_root).unwrap();
-        let commit_tree_hash = NodeType::create_node_hash(&mut result);
+        let mut result = NodeType::fuse(last_commit_root, staged_root).unwrap();
+        let commit_tree_hash = result.create_node_hash();
         result.transcript_to_files(&find_objects());
 
         create_commit(description, last_commit_hash, commit_tree_hash);
@@ -83,14 +83,14 @@ pub fn commit() -> Result<(), io::Error>{
     Ok(())
 }
 
-fn create_commit(description: String, last_commit_hash: String, commit_tree_hash: String) {
+pub fn create_commit(description: String, last_commit_hash: String, commit_tree_hash: String) {
     let parent = last_commit_hash;
     let tree = commit_tree_hash;
     let commit: Commit = Commit::new(tree, String::from(parent), description);
 
     commit.transcript_commit_to_file();
 
-    Commit::delete_description_file();
+    Commit::reset_description_file().expect("Unable to reset description file");
 }
 
 fn is_first_commit() -> bool {

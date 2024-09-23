@@ -1,6 +1,6 @@
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::{Write, BufWriter};
+use std::io::{Write, BufWriter, BufReader, BufRead, Error, ErrorKind};
 use std::os::unix::fs::FileExt;
 use crate::arguments::init::{find_dit, find_info, get_head_hash};
 use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
@@ -50,6 +50,17 @@ impl Branch {
         }
     }
 
+    pub fn exist(name: String) -> bool{
+        let ref_path = find_dit().unwrap().join("refs");
+        let file_path = ref_path.join(name.clone());
+
+        if file_path.is_file() {
+            return true
+        }
+
+        false
+    }
+
     pub fn set_info_file(name: String, head: String) -> Result<(), io::Error> {
         let file = File::create("./.dit/info")?;
 
@@ -78,5 +89,27 @@ impl Branch {
             name
         }
     }
-    
+
+    pub fn get_branch(name: String) -> Result<Branch, io::Error> {
+        let ref_path = find_dit().ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Ref directory not found"))?.join("refs");
+        let file_path = ref_path.join(name.clone());
+
+        let file = OpenOptions::new()
+            .read(true)
+            .open(file_path)?;
+
+        let reader = BufReader::new(file);
+        let lines: Vec<_> = reader.lines().collect();
+        let line = lines.last().ok_or_else( || io::Error::new(io::ErrorKind::UnexpectedEof, "File is empty"))?;
+        return match line {
+            Ok(hash) => {
+                let branch = Branch {
+                    head: hash.to_string(),
+                    name
+                };
+                Ok(branch)
+            }
+            _ => Err(Error::new(ErrorKind::InvalidData, "Head not found"))
+        };
+    }
 }

@@ -18,6 +18,8 @@ pub fn init_repository() -> Result<(), io::Error> {
     init_staged_file()?;
     
     File::create("./.dit/deleted")?;
+    
+    File::create("./.dit/commit")?;
 
     Ok(())
 }

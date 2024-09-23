@@ -121,8 +121,12 @@ impl Commit {
         Ok(())
     }
     
-    pub fn delete_description_file(){
-        std::fs::remove_file("./.dit/commit").unwrap();
+    pub fn reset_description_file() -> Result<(), io::Error>{
+        let path = PathBuf::from("./.dit/commit");
+        let file = OpenOptions::new().write(true).truncate(true).open(path)?;
+        let mut writer = BufWriter::new(file);
+        write!(writer, "")?;
+        Ok(())
     }
 
     pub fn get_commit_from_file(hash: String) -> Commit{
@@ -165,7 +169,6 @@ impl Commit {
         
         return root
     }
-
 
     pub fn get_commit_list(branch_name: String) -> Vec<Commit>{
 

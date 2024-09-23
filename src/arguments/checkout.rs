@@ -22,9 +22,6 @@ pub fn checkout(name: &String) -> Result<(), io::Error>{
                 Branch::set_info_file(name.clone(), NULL_HASH.to_string())?;
             }
         }
-        
-
-        
     }
     
     Ok(())

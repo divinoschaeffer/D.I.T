@@ -96,3 +96,41 @@ pub fn read_content_file_from_path(path: &&Path) -> Result<String,io::Error> {
     buf_reader.read_to_string(&mut contents)?;
     Ok(contents)
 }
+
+pub fn merge_text(text1: String, text2: String) -> String {
+    let mut result = String::new();
+    let mut in_conflict = false;
+
+    for diff in diff::lines(&text1, &text2) {
+        match diff {
+            diff::Result::Left(old) => {
+                if !in_conflict {
+                    result.push_str("\n<<<<<< HEAD (current change)\n");
+                    in_conflict = true;
+                }
+                result.push_str(old);
+            }
+            diff::Result::Right(new) => {
+                if in_conflict {
+                    result.push_str("\n======\n");
+                }
+                result.push_str(new);
+                result.push_str("\n>>>>>> (incoming change)\n");
+                in_conflict = false; // End the conflict block
+            }
+            diff::Result::Both(common, _) => {
+                if in_conflict {
+                    result.push_str("\n======\n>>>>>> (incoming change)\n");
+                    in_conflict = false; // Close the conflict block
+                }
+                result.push_str(common);
+            }
+        }
+    }
+
+    if in_conflict {
+        result.push_str("\n======\n>>>>>> (incoming change)\n");
+    }
+
+    result
+}

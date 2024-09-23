@@ -36,7 +36,7 @@ pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
             find_element_to_remove(&mut root, &mut ancestors);
         }
 
-        let root_hash = NodeType::create_node_hash(&mut root);
+        let root_hash = root.create_node_hash();
 
         root.transcript_to_files(&object_path);
 

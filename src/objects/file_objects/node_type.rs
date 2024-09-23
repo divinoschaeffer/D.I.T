@@ -1,29 +1,36 @@
-use std::{fs::File, io::BufWriter, path::{Path, PathBuf}};
+use std::{
+    fs::File,
+    io::BufWriter,
+    path::{Path, PathBuf},
+};
 
 use sha1::{Digest, Sha1};
 
-use crate::{arguments::init::get_object_path, utils::{read_content_file_from_path, real_path}};
+use crate::{
+    arguments::init::get_object_path,
+    utils::{read_content_file_from_path, real_path},
+};
 
-use crate::objects::file_objects::tree::Tree;
 use crate::objects::file_objects::blob::Blob;
+use crate::objects::file_objects::tree::Tree;
 
 #[derive(Clone)]
+#[derive(Debug)]
 pub enum NodeType {
     Blob(Blob),
-    Tree(Tree)
+    Tree(Tree),
 }
 
 impl NodeType {
     pub fn display(&self) {
         match self {
             NodeType::Blob(blob) => blob.display(),
-            NodeType::Tree(tree) => tree.display()
+            NodeType::Tree(tree) => tree.display(),
         }
     }
 
-    pub fn create_node_hash(racine: &mut NodeType) -> String {
-        if let  NodeType::Tree(ref mut tree) = racine {
-
+    pub fn create_node_hash(&mut self) -> String {
+        if let NodeType::Tree(ref mut tree) = self {
             let mut hashes: Vec<String> = Vec::new();
 
             for node in tree.get_mut_nodes() {
@@ -41,42 +48,40 @@ impl NodeType {
             let string_hash = hex::encode(hash);
             tree.set_hash(string_hash.clone());
             string_hash
-
-        } else if let NodeType::Blob(ref mut blob) = racine {
-            return blob.get_hash().clone()
+        } else if let NodeType::Blob(ref mut blob) = self {
+            return blob.get_hash().clone();
         } else {
-            return String::new()
+            return String::new();
         }
+    }
 
-    }
-    
-    pub fn get_name(&self) -> String{
-        match self { 
+    pub fn get_name(&self) -> String {
+        match self {
             NodeType::Tree(tree) => tree.get_name().clone(),
-            NodeType::Blob(blob) => blob.get_name().clone()
+            NodeType::Blob(blob) => blob.get_name().clone(),
         }
     }
-    
+
     pub fn get_hash(&self) -> String {
-        match self { 
+        match self {
             NodeType::Tree(t) => t.get_hash().clone(),
             NodeType::Blob(b) => b.get_hash().clone(),
         }
     }
-    
+
     pub fn get_nodes(&self) -> Vec<NodeType> {
         if let NodeType::Tree(tree) = self {
-            return tree.get_nodes()
+            return tree.get_nodes();
         }
-        return Vec::new()
+        return Vec::new();
     }
-    
-    pub fn add_node(&mut self, node: NodeType){
+
+    pub fn add_node(&mut self, node: NodeType) {
         if let NodeType::Tree(ref mut tree) = self {
             tree.add_node(node);
-        }    
+        }
     }
-    
+
     pub fn remove_node(&mut self, node: &NodeType) {
         if let NodeType::Tree(ref mut tree) = self {
             tree.remove_node(&node);
@@ -85,7 +90,7 @@ impl NodeType {
 
     pub fn replace(&mut self, node: NodeType) {
         for n in self.get_nodes().iter() {
-            if n.get_name() == node.get_name() && Self::is_same_type(n,&node) {
+            if n.get_name() == node.get_name() && Self::is_same_type(n, &node) {
                 self.remove_node(n);
                 self.add_node(node);
                 return;
@@ -107,11 +112,11 @@ impl NodeType {
             println!("path: {} does not exist", real_path.display());
             return;
         }
-    
+
         let mut ancestors: Vec<_> = real_path.ancestors().collect();
         ancestors.pop();
         ancestors.reverse();
-    
+
         self._create_repository_tree(&mut ancestors);
     }
 
@@ -119,12 +124,12 @@ impl NodeType {
         if paths.is_empty() {
             return;
         }
-    
+
         let path = paths[0];
         let file_name = path.file_name().unwrap().to_str().unwrap();
-    
+
         if path.is_dir() {
-            self.create_tree_node(file_name,paths);
+            self.create_tree_node(file_name, paths);
         } else {
             self.create_blob_node(paths, &path, file_name);
         }
@@ -134,11 +139,10 @@ impl NodeType {
         let content = read_content_file_from_path(&path).unwrap_or_else(|e| {
             panic!("Error while reading {:?} : {e}", file_name);
         });
-        let mut file_blob: Blob =
-            Blob::new(String::from(file_name), content, String::from(""));
+        let mut file_blob: Blob = Blob::new(String::from(file_name), content, String::from(""));
         file_blob.create_hash();
         let node: NodeType = NodeType::Blob(file_blob);
-    
+
         if let NodeType::Tree(ref mut tree) = self {
             if !tree.exist_node_with_same_name(node.get_name()) {
                 paths.remove(0);
@@ -173,24 +177,24 @@ impl NodeType {
         }
     }
 
-    pub fn transcript_to_files(&mut self, objects_path: &PathBuf){
+    pub fn transcript_to_files(&mut self, objects_path: &PathBuf) {
         if let NodeType::Tree(tree) = self {
             let hash = tree.get_hash().clone();
-    
+
             let node_path = get_object_path(objects_path, &hash);
             if !node_path.exists() {
                 let file = File::create(&node_path).unwrap_or_else(|e1| {
                     panic!("Error while creating file in objects directory: {e1}");
                 });
                 let mut writer = BufWriter::new(file);
-    
+
                 tree.write_tree_node_to_file(&objects_path, &mut writer);
             }
         }
-        
+
         if let NodeType::Blob(blob) = self {
             let hash = blob.get_hash().clone();
-            
+
             let node_path = get_object_path(objects_path, &hash);
             if !node_path.exists() {
                 let file = File::create(&node_path).unwrap_or_else(|e1| {
@@ -203,14 +207,14 @@ impl NodeType {
 
     pub fn find_node_with_same_name(reference: &NodeType, node: &NodeType) -> Option<NodeType> {
         for n in node.get_nodes() {
-            if n.get_name() == reference.get_name() {
+            if n.get_name() == reference.get_name() && Self::is_same_type(&n, reference) {
                 return Some(n);
             }
         }
-        return None
+        return None;
     }
 
-    pub fn merge(r1: NodeType, r2: NodeType) -> Option<NodeType> {
+    pub fn fuse(r1: NodeType, r2: NodeType) -> Option<NodeType> {
         if r1 == r2 {
             return None;
         }
@@ -221,7 +225,7 @@ impl NodeType {
 
         for node in new.get_nodes().iter_mut() {
             if let Some(equi_node) = Self::find_node_with_same_name(&node, &r2) {
-                if let Some(merged_node) = Self::merge(node.clone(), equi_node) {
+                if let Some(merged_node) = Self::fuse(node.clone(), equi_node) {
                     new.replace(merged_node);
                 }
             }
@@ -229,30 +233,67 @@ impl NodeType {
 
         Some(new)
     }
-    
+
     fn complete_node_from_another_node(&mut self, node: NodeType) {
         match self {
             NodeType::Tree(tree) => {
                 tree.complete_node_from_another_node(node);
-            },
-            _ => ()
+            }
+            _ => (),
         }
     }
-    
-    pub fn create_element(&mut self, path_buf: PathBuf){
-        match self{
+
+    pub fn create_element(&mut self, path_buf: PathBuf) {
+        match self {
             NodeType::Tree(t) => t.create_directory_from_tree(path_buf),
-            NodeType::Blob(b) => b.create_file_from_blob(path_buf)
+            NodeType::Blob(b) => b.create_file_from_blob(path_buf),
         }
     }
-    
-    pub fn delete_element(&mut self, path_buf: PathBuf){
-        match self{
+
+    pub fn delete_element(&mut self, path_buf: PathBuf) {
+        match self {
             NodeType::Tree(t) => t.delete_directory(path_buf),
-            NodeType::Blob(b) => b.delete_file(path_buf)
+            NodeType::Blob(b) => b.delete_file(path_buf),
         }
     }
-    
+
+    pub fn merge(n1: NodeType, n2: NodeType) -> Option<NodeType> {
+        if n1 == n2 && n1.get_name() != ""{
+            return None;
+        }
+
+        match (n1, n2) {
+            (NodeType::Blob(mut b1), NodeType::Blob(b2)) => {
+                b1.merge(b2);
+                Some(NodeType::Blob(b1))
+            }
+            (NodeType::Tree(mut t1), NodeType::Tree(t2)) => {
+
+                for node1 in t1.get_nodes() {
+                    let name_node1 = node1.get_name();
+                    for node2 in t2.get_nodes() {
+
+                        if name_node1 == node2.get_name() && Self::is_same_type(&node1, &node2) {
+                            if let Some(result) = Self::merge(node1.clone(), node2) {
+                                t1.replace_node(result);
+                            }
+                        }
+                    }
+                }
+
+                for node in t2.get_nodes().iter(){
+                    if !t1.exist_node_with_same_name_and_type(node) {
+                        t1.add_node(node.to_owned())
+                    }
+                }
+
+                Some(NodeType::Tree(t1))
+            }
+            _ => None,
+        }
+    }
+
+
 }
 
 impl PartialEq for NodeType {
@@ -260,7 +301,216 @@ impl PartialEq for NodeType {
         match (self, other) {
             (NodeType::Blob(blob1), NodeType::Blob(blob2)) => blob1 == blob2,
             (NodeType::Tree(tree1), NodeType::Tree(tree2)) => tree1 == tree2,
-            _ => false
+            _ => false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use super::*;
+
+    mod merge_test {
+        use super::*;
+
+        fn basic_setup() -> (NodeType, NodeType, NodeType){
+            let blob1 = Blob::new(
+                "file1.txt".to_string(),
+                "Ceci est le contenu du fichier 1.".to_string(),
+                "hash_blob_1".to_string(),
+            );
+            
+            let blob3 = Blob::new(
+                "file3.txt".to_string(),
+                "Ceci est le contenu du fichier 3.".to_string(),
+                "hash_blob_3".to_string(),
+            );
+
+            let tree1 = Tree::new(
+                "hello".to_string(),
+                vec![
+                    NodeType::Blob(blob1.clone()),
+                ],
+                "hash_tree1".to_string(),
+            );
+
+            let tree2 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree1)
+                ],
+                "".to_string(),
+            );
+
+            let tree3 = Tree::new(
+                "zio".to_string(),
+                vec![
+                    NodeType::Blob(blob3.clone()),
+                ],
+                "hash_tree3".to_string(),
+            );
+
+            let tree4 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree3.clone())
+                ],
+                "".to_string(),
+            );
+
+            let tree5 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree3),
+                    NodeType::Tree(tree2.clone())
+                ],
+                "".to_string(),
+            );
+
+            (NodeType::Tree(tree2), NodeType::Tree(tree4), NodeType::Tree(tree5))
+        }
+        
+        fn multiple_same_name_setup() -> (NodeType, NodeType, NodeType){
+            let blob1 = Blob::new(
+                "file1.txt".to_string(),
+                "Ceci est le contenu du fichier 1.".to_string(),
+                "hash_blob_1".to_string(),
+            );
+            
+
+            let blob3 = Blob::new(
+                "file3.txt".to_string(),
+                "Ceci est le contenu du fichier 3.".to_string(),
+                "hash_blob_3".to_string(),
+            );
+            
+            let tree1 = Tree::new(
+                "hello".to_string(),
+                vec![
+                    NodeType::Blob(blob1.clone()),
+                ],
+                "hash_tree1".to_string(),
+            );
+
+            let tree2 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree1)
+                ],
+                "".to_string(),
+            );
+
+            let tree3 = Tree::new(
+                "zio".to_string(),
+                vec![
+                    NodeType::Blob(blob3.clone()),
+                    NodeType::Blob(blob1.clone())
+                ],
+                "hash_tree3".to_string(),
+            );
+
+            let tree4 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree3.clone())
+                ],
+                "".to_string(),
+            );
+
+            let tree5 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree3),
+                    NodeType::Tree(tree2.clone())
+                ],
+                "".to_string(),
+            );
+
+            (NodeType::Tree(tree2), NodeType::Tree(tree4), NodeType::Tree(tree5))
+        }
+
+        fn multiple_same_name_different_content_setup() -> (NodeType, NodeType, NodeType){
+            let blob1 = Blob::new(
+                "file1.txt".to_string(),
+                "Ceci est le contenu du fichier 1.".to_string(),
+                "hash_blob_1".to_string(),
+            );
+            
+
+            let blob2 = Blob::new(
+                "file1.txt".to_string(),
+                "Ceci est le contenu du fichier 1\nHAHAHAHAHAH.".to_string(),
+                "hash_blob_1".to_string(),
+            );
+
+            let blob3 = Blob::new(
+                "file3.txt".to_string(),
+                "Ceci est le contenu du fichier 3.".to_string(),
+                "hash_blob_3".to_string(),
+            );
+            
+
+            let tree1 = Tree::new(
+                "hello".to_string(),
+                vec![
+                    NodeType::Blob(blob1.clone()),
+                ],
+                "hash_tree1".to_string(),
+            );
+
+            let tree2 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree1)
+                ],
+                "".to_string(),
+            );
+
+            let tree3 = Tree::new(
+                "zio".to_string(),
+                vec![
+                    NodeType::Blob(blob3.clone()),
+                    NodeType::Blob(blob2.clone())
+                ],
+                "hash_tree3".to_string(),
+            );
+
+            let tree4 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree3.clone())
+                ],
+                "".to_string(),
+            );
+
+            let tree5 = Tree::new(
+                "".to_string(),
+                vec![
+                    NodeType::Tree(tree3),
+                    NodeType::Tree(tree2.clone())
+                ],
+                "".to_string(),
+            );
+
+            (NodeType::Tree(tree2), NodeType::Tree(tree4), NodeType::Tree(tree5))
+        }
+
+        #[test]
+        fn basic() {
+            let (n1, n2, n3) = basic_setup();
+            assert_eq!(NodeType::merge(n1, n2).unwrap(),n3)
+        }
+        
+        #[test]
+        fn multiple_same_name_same_content(){
+            let (n1, n2, n3) = multiple_same_name_setup();
+            assert_eq!(NodeType::merge(n1, n2).unwrap(),n3)
+        }
+        
+        #[test]
+        fn multiple_same_name_different_content(){
+            let (n1, n2, n3) = multiple_same_name_different_content_setup();
+            assert_eq!(NodeType::merge(n1, n2).unwrap(),n3)
         }
     }
 }

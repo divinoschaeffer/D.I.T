@@ -6,6 +6,7 @@ use dit::arguments::checkout::checkout;
 use dit::arguments::commit::commit;
 use dit::arguments::create_branch::{ new_branch};
 use dit::arguments::delete::delete;
+use dit::arguments::merge::merge;
 use dit::arguments::rm;
 use dit::arguments::message::message;
 use dit::arguments::revert::revert;
@@ -91,6 +92,13 @@ fn main() {
                 .value_name("NAME")
                 .help("change the current branch")
         )
+        .arg(
+            Arg::new("merge")
+                .long("merge")
+                .num_args(1)
+                .value_name("NAME")
+                .help("merge current branch with the specified branch")
+        )
         .get_matches();
 
     // INIT
@@ -173,6 +181,14 @@ fn main() {
         match checkout(name) {
             Ok(()) => (),
             Err(e) => panic!("Error while changing branch : {e}")
+        }
+    }
+    
+    // MERGE
+    if let Some(name) = matches.get_one::<String>("merge"){
+        match merge(name) {
+            Ok(()) => (),
+            Err(e) => panic!("Error while merging branch: {e}")
         }
     }
 }
