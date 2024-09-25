@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::os::unix::fs::FileExt;
 use std::path::{Component, Path, PathBuf};
+use crate::error::DitError;
 
 pub const NULL_HASH: &str = "0000000000000000000000000000000000000000";
 
@@ -50,14 +51,16 @@ pub fn normalize_path(path: PathBuf) -> PathBuf {
     components.iter().collect()
 }
 
-pub fn real_path(path: &String) -> PathBuf {
+pub fn real_path(path: &String) -> Result<PathBuf, DitError> {
     let rel_to_dit = match relative_path_to_dit() {
         Some(rel_to_dit) => rel_to_dit,
-        None => panic!("Error: .dit not found")
+        None => {
+            return Err(DitError::NotInitialized)
+        }
     };
     let path_file = rel_to_dit.join(path);
     let norm_path = normalize_path(path_file);
-    norm_path
+    Ok(norm_path)
 }
 
 pub fn read_hash_file(file: File, pos: u64) -> String {

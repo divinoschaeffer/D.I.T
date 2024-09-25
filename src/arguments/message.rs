@@ -16,8 +16,6 @@ pub fn message(message: String) -> Result<(), io::Error> {
         .open(desc_path).unwrap();
     
     let mut writer = BufWriter::new(file);
-    write!(writer,"{}",message).unwrap_or_else(|e| {
-        panic!("Error while writing commit message: {e}");
-    });
+    write!(writer,"{}",message)?;
     Ok(())
 }

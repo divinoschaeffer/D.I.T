@@ -1,8 +1,10 @@
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::{Write, BufWriter, BufReader, BufRead, Error, ErrorKind};
+use std::io::{Write, BufWriter, BufReader, BufRead, ErrorKind, Error};
 use std::os::unix::fs::FileExt;
-use crate::arguments::init::{find_dit, find_info, get_head_hash};
+use colored::Colorize;
+use crate::arguments::init::{find_info, find_refs, get_head_hash};
+use crate::error::DitError;
 use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
 
 pub struct Branch {
@@ -19,17 +21,18 @@ impl Branch {
         &self.head
     }
     
-    pub fn new_branch(name: String, head: String) -> Branch{
-        let ref_path = find_dit().unwrap().join("refs");
+    pub fn new_branch(name: String, head: String) -> Result<Branch, DitError>{
+        let ref_path = find_refs();
         let file_path = ref_path.join(name.clone());
         
         if file_path.is_file() {
-            panic!("Can't have two branch with same name");
+            println!("{}", "Branch with same name already exist".blue());
+            return Err(DitError::IoError(Error::from(io::ErrorKind::InvalidData)));
         }
         
-        File::create(file_path).unwrap();
+        File::create(file_path).map_err(DitError::IoError)?;
         
-        Self::set_info_file(name.clone(), head.clone()).unwrap();
+        Self::set_info_file(name.clone(), head.clone()).map_err(DitError::IoError)?;
         
         if head != NULL_HASH {
             let branch_path = format!("./.dit/refs/{}", name);
@@ -38,20 +41,20 @@ impl Branch {
                 .write(true)
                 .append(true)
                 .create(true)
-                .open(branch_path).unwrap();
+                .open(branch_path).map_err(DitError::IoError)?;
 
             let mut writer = BufWriter::new(file);
-            writeln!(writer, "{}",head).unwrap();
+            writeln!(writer, "{}",head).map_err(DitError::IoError)?;
         }
         
-        Branch {
+        Ok(Branch {
             head,
             name
-        }
+        })
     }
 
     pub fn exist(name: String) -> bool{
-        let ref_path = find_dit().unwrap().join("refs");
+        let ref_path = find_refs();
         let file_path = ref_path.join(name.clone());
 
         if file_path.is_file() {
@@ -71,36 +74,36 @@ impl Branch {
         Ok(())
     }
     
-    pub fn get_current_branch() -> Branch {
-        let head = get_head_hash();
+    pub fn get_current_branch() -> Result<Branch,DitError> {
+        let head = get_head_hash()?;
         let info = find_info();
 
         let mut buf = [0u8; 100];
         
-        let file = File::open(info).unwrap();
+        let file = File::open(info).map_err(DitError::IoError)?;
 
-        file.read_at(&mut buf, 46).unwrap();
+        file.read_at(&mut buf, 46).map_err(DitError::IoError)?;
         let filtered_bytes: Vec<u8> = buf.iter().cloned().filter(|&b| b != 0).collect();
 
         let name =  String::from_utf8(filtered_bytes).unwrap();
         
-        Branch {
+        Ok(Branch {
             head,
             name
-        }
+        })
     }
 
-    pub fn get_branch(name: String) -> Result<Branch, io::Error> {
-        let ref_path = find_dit().ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "Ref directory not found"))?.join("refs");
+    pub fn get_branch(name: String) -> Result<Branch, DitError> {
+        let ref_path = find_refs();
         let file_path = ref_path.join(name.clone());
 
         let file = OpenOptions::new()
             .read(true)
-            .open(file_path)?;
+            .open(file_path).map_err(DitError::IoError)?;
 
         let reader = BufReader::new(file);
         let lines: Vec<_> = reader.lines().collect();
-        let line = lines.last().ok_or_else( || io::Error::new(io::ErrorKind::UnexpectedEof, "File is empty"))?;
+        let line = lines.last().ok_or_else( || DitError::IoError(io::Error::new(io::ErrorKind::UnexpectedEof, "File is empty")))?;
         return match line {
             Ok(hash) => {
                 let branch = Branch {
@@ -109,7 +112,7 @@ impl Branch {
                 };
                 Ok(branch)
             }
-            _ => Err(Error::new(ErrorKind::InvalidData, "Head not found"))
+            _ => Err(DitError::IoError(io::Error::new(ErrorKind::InvalidData, "Head not found")))
         };
     }
 }

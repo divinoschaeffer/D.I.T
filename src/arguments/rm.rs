@@ -1,33 +1,32 @@
 use std::fs::OpenOptions;
-use std::io;
 use std::path::Path;
+use colored::Colorize;
 use crate::arguments::init::{find_dit, get_staged_hash};
+use crate::error::DitError;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
 use crate::utils::{NULL_HASH, real_path, write_hash_file};
 
-pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
-    let dit_path = find_dit().unwrap_or_else(|| {
-        panic!("dit is not initialized");
-    });
+pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
+    let dit_path = find_dit();
     
-    let staged_hash = get_staged_hash();
+    let staged_hash = get_staged_hash()?;
     let object_path = dit_path.join("objects");
     let staged_path = dit_path.join("staged");
     
     if elements.is_empty() {
-        println!("You need to specify files to remove");
+        println!("{}", "You need to specify files to remove".blue());
     } else if staged_hash == NULL_HASH {
-        println!("You need to add files before remove them");
+        println!("{}", "You need to add files before remove them".blue());
     } else {
         let mut tree = Tree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
         
-        tree.get_tree_from_file(staged_hash);
+        tree.get_tree_from_file(staged_hash)?;
 
         let mut root = NodeType::Tree(tree);
         
         for element in elements {
-            let real_path = real_path(element);
+            let real_path = real_path(element)?;
             
             let mut ancestors: Vec<_> = real_path.ancestors().collect();
             ancestors.pop();
@@ -38,7 +37,7 @@ pub fn rm(elements: Vec<&String>) -> Result<(), io::Error> {
 
         let root_hash = root.create_node_hash();
 
-        root.transcript_to_files(&object_path);
+        root.transcript_to_files(&object_path)?;
 
         let file = OpenOptions::new()
             .write(true)

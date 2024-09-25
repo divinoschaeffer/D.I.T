@@ -1,12 +1,14 @@
 use crate::utils::{NULL_HASH, read_hash_file, write_hash_file};
 use std::fs::{create_dir, File};
 use std::path::{Path, PathBuf};
-use std::{env, fs, io};
+use std::{fs, io};
+use colored::Colorize;
+use crate::error::DitError;
 use crate::objects::branch::Branch;
 
 pub fn init_repository() -> Result<(), io::Error> {
     if Path::new("./.dit").exists() {
-        println!("dit is already initialized");
+        println!("{}", "dit is already initialized".blue());
         return Ok(());
     }
 
@@ -27,7 +29,7 @@ pub fn init_repository() -> Result<(), io::Error> {
 fn init_info_file() -> Result<(), io::Error> {
     File::create("./.dit/info")?;
     
-    Branch::new_branch(String::from("main"), String::from(NULL_HASH));
+    Branch::new_branch(String::from("main"), String::from(NULL_HASH)).unwrap();
 
     Ok(())
 }
@@ -40,7 +42,7 @@ fn init_staged_file() -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn open_object_file(hash: String) -> File {
+pub fn open_object_file(hash: String) -> Result<File, io::Error> {
     let b_hash = &hash[..2];
     let e_hash = &hash[2..];
     
@@ -48,81 +50,60 @@ pub fn open_object_file(hash: String) -> File {
     if object_dir.exists() {
         let object_file = object_dir.join(e_hash);
         if object_file.exists() {
-            let file = File::open(object_file).unwrap_or_else(|e| {
-                panic!("Error while opening object file : {e}")
-            });
-            return file;
+            let file = File::open(object_file)?;
+            return Ok(file);
         }
     }
-    panic!("Error file not found in objects: {hash}");
+    Err(io::Error::new(io::ErrorKind::NotFound, "Error file not found in objects: {hash}"))
 }
 
-pub fn get_staged_hash() -> String {
+pub fn get_staged_hash() -> Result<String, DitError> {
     let staged_path = find_staged();
-    let file = File::open(staged_path).unwrap_or_else(|e| {
-        panic!("Error while opening staged file: {e}");
-    });
-    read_hash_file(file, 0)
+    let file = File::open(staged_path).map_err(DitError::IoError)?;
+    Ok(read_hash_file(file, 0))
 }
 
-pub fn get_head_hash()  -> String {
+pub fn get_head_hash()  -> Result<String, DitError> {
     let info_path = find_info();
-    let file = File::open(info_path).unwrap_or_else(|e| {
-        panic!("Error while opening staged file: {e}");
-    });
-    read_hash_file(file, 5)
+    let file = File::open(info_path).map_err(DitError::IoError)?;
+    Ok(read_hash_file(file, 5))
 }
 
 pub fn find_objects() -> PathBuf{
-    let dit_path = find_dit().unwrap();
+    let dit_path = find_dit();
     dit_path.join("objects")
 }
 
 pub fn find_refs() -> PathBuf{
-    find_dit().unwrap().join("refs")
+    find_dit().join("refs")
 }
 
 pub fn find_staged() -> PathBuf {
-    let dit_path = find_dit().unwrap();
+    let dit_path = find_dit();
     dit_path.join("staged")
 }
 
 pub fn find_info() -> PathBuf {
-    let dit_path = find_dit().unwrap();
+    let dit_path = find_dit();
     dit_path.join("info")
 }
 
-pub fn find_dit() -> Option<PathBuf> {
-    let initial_dir  = env::current_dir()
-        .expect("Failed to get current directory");
-
-    let mut current_dir = initial_dir.clone();
-
-    loop {
-        let dit_path = current_dir.join(".dit");
-        if dit_path.exists() && dit_path.is_dir() {
-            return Some(PathBuf::from(dit_path))
-        }
-
-        match current_dir.parent() {
-            Some(parent) => current_dir = parent.to_path_buf(),
-            None => break,
-        }
-    }
-
-    None
+pub fn find_dit() -> PathBuf {
+    PathBuf::from("./.dit")
 }
 
-pub fn get_object_path(objects_path: &PathBuf, hash: &String) -> PathBuf {
+pub fn is_init() -> bool {
+    find_dit().is_dir()
+}
+
+pub fn get_object_path(objects_path: &PathBuf, hash: &String) -> Result<PathBuf, io::Error> {
     let b_hash = &hash[..2];
     let e_hash = &hash[2..];
 
     let object_dir_path = objects_path.join(b_hash);
     if !object_dir_path.exists() {
-        create_dir(&object_dir_path).unwrap_or_else(|e| {
-            panic!("Error while creating directory in objects directory: {e}");
-        })
+        create_dir(&object_dir_path)?;
     }
     let node_path = object_dir_path.join(e_hash);
-    node_path
+    Ok(node_path)
 }

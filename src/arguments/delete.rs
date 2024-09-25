@@ -1,19 +1,19 @@
 use std::fs::OpenOptions;
-use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::io::{ BufRead, BufReader, BufWriter, Write};
+use colored::Colorize;
 use crate::utils::NULL_HASH;
 
 use crate::arguments::init::{find_dit, get_staged_hash};
+use crate::error::DitError;
 
-pub fn delete(elements: Vec<&String>) -> Result<(), io::Error> {
+pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
 
-    let dit_path = find_dit().unwrap_or_else(|| {
-        panic!("dit is not initialized");
-    });
+    let dit_path = find_dit();
     let deleted_path = dit_path.join("deleted");
-    let staged_hash = get_staged_hash();
+    let staged_hash = get_staged_hash()?;
 
     if staged_hash == NULL_HASH {
-        println!("Elements need to be commited first");
+        println!("{}", "Elements need to be commited first".blue());
     }
     else {
         let file = OpenOptions::new()
@@ -24,23 +24,19 @@ pub fn delete(elements: Vec<&String>) -> Result<(), io::Error> {
         
         let mut writer = BufWriter::new(file);
         for element in elements {
-            writeln!(writer, "{}", element).unwrap_or_else(|e| {
-                panic!("Error while writing in deleted files: {e}");
-            });
+            writeln!(writer, "{}", element).map_err(DitError::IoError)?;
         }
     }
     Ok(())
 }
 
-pub fn get_deleted_elements() -> Option<Vec<String>>{
-    let dit_path = find_dit().expect("Failed to open dit");
+pub fn get_deleted_elements() -> Result<Option<Vec<String>>, DitError>{
+    let dit_path = find_dit();
     let deleted_path = dit_path.join("deleted");
 
     let file = OpenOptions::new()
         .read(true)
-        .open(deleted_path).unwrap_or_else(|e| {
-            panic!("Error while opening deleted file {e}");
-        });
+        .open(deleted_path).map_err(DitError::IoError)?;
 
         let reader = BufReader::new(file);
         let mut elements: Vec<String> = Vec::new();
@@ -48,12 +44,12 @@ pub fn get_deleted_elements() -> Option<Vec<String>>{
         for line in reader.lines() {
             let content = match line {
                 Ok(content) => content,
-                Err(e) => panic!("Error while reading object file: {}",e),
+                Err(_e) => return Err(DitError::UnexpectedComportement("deleted element not found".to_string())),
             };
             elements.push(content);
 
         }
     
-        Some(elements)
+        Ok(Some(elements))
 
 }

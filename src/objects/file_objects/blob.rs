@@ -3,11 +3,7 @@ use crate::utils::merge_text;
 use sha1::{Digest, Sha1};
 use std::fs::OpenOptions;
 use std::path::PathBuf;
-use std::{
-    fs,
-    fs::File,
-    io::{BufWriter, Write},
-};
+use std::{fs, fs::File, io::{BufWriter, Write}, io};
 
 #[derive(Clone, Debug)]
 pub struct Blob {
@@ -61,12 +57,12 @@ impl Blob {
         self.set_hash(string_hash)
     }
 
-    pub fn write_content_to_file(&self, file: File) {
+    pub fn write_content_to_file(&self, file: File) -> Result<(), io::Error>{
         let mut writer = BufWriter::new(file);
 
-        writeln!(writer, "{}", self.get_content()).unwrap_or_else(|e| {
-            panic!("Error while writing to file: {e}");
-        });
+        writeln!(writer, "{}", self.get_content())?;
+        
+        Ok(())
     }
 
     pub fn is_blob(node: &NodeType) -> bool {
@@ -76,31 +72,33 @@ impl Blob {
         }
     }
 
-    pub fn create_file_from_blob(&self, directory_path: PathBuf) {
+    pub fn create_file_from_blob(&self, directory_path: PathBuf) -> Result<(), io::Error> {
         let filename = self.name.to_owned();
         let file_path = directory_path.join(filename);
 
         if file_path.is_file() {
-            fs::remove_file(file_path.clone()).unwrap();
+            fs::remove_file(file_path.clone())?;
         }
 
         let file = OpenOptions::new()
             .create(true)
             .write(true)
-            .open(file_path)
-            .unwrap();
+            .open(file_path)?;
 
         let mut writer = BufWriter::new(file);
-        write!(writer, "{}", self.content.to_owned()).unwrap();
+        write!(writer, "{}", self.content.to_owned())?;
+        
+        Ok(())
     }
 
-    pub fn delete_file(&self, directory_path: PathBuf) {
+    pub fn delete_file(&self, directory_path: PathBuf) -> Result<(), io::Error>{
         let filename = self.name.to_owned();
         let file_path = directory_path.join(filename);
 
         if file_path.is_file() {
-            fs::remove_file(file_path).unwrap();
+            fs::remove_file(file_path)?;
         }
+        Ok(())
     }
 
     pub fn merge(&mut self, blob: Blob) {
