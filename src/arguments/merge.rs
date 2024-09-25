@@ -1,5 +1,5 @@
 use crate::arguments::commit::create_commit;
-use crate::arguments::init::find_objects;
+use crate::arguments::init::{find_objects, is_init};
 use crate::error::DitError;
 use crate::objects::branch::Branch;
 use crate::objects::commit::Commit;
@@ -7,6 +7,10 @@ use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
 
 pub fn merge(name: &String) -> Result<(), DitError> {
+
+    if !is_init() {
+        return Err(DitError::NotInitialized)
+    }
     
     let target_branch = Branch::get_branch(name.to_owned())?;
     let current_branch = Branch::get_current_branch()?;

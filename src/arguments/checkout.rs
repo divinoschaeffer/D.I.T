@@ -1,10 +1,14 @@
-use crate::arguments::init::{ find_refs, get_head_hash};
+use crate::arguments::init::{find_refs, get_head_hash, is_init};
 use crate::error::DitError;
 use crate::objects::branch::Branch;
 use crate::objects::commit::Commit;
 use crate::utils::{NULL_HASH};
 
 pub fn checkout(name: &String) -> Result<(), DitError>{
+
+    if !is_init() {
+        return Err(DitError::NotInitialized)
+    }
 
     let branch_path = find_refs().join(name.to_owned());
     

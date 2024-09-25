@@ -13,7 +13,7 @@ pub fn message(message: String) -> Result<(), io::Error> {
         .truncate(true)
         .append(false)
         .create(true)
-        .open(desc_path).unwrap();
+        .open(desc_path)?;
     
     let mut writer = BufWriter::new(file);
     write!(writer,"{}",message)?;

@@ -1,6 +1,6 @@
 use std::process::Command;
 use colored::Colorize;
-use crate::arguments::init::{find_dit, find_objects, get_staged_hash};
+use crate::arguments::init::{find_dit, find_objects, get_staged_hash, is_init};
 use crate::error::DitError;
 use crate::objects::commit::Commit;
 use crate::objects::file_objects::node_type::NodeType;
@@ -12,6 +12,10 @@ use super::init::get_head_hash;
 use super::rm::find_element_to_remove;
 
 pub fn commit() -> Result<(), DitError>{
+
+    if !is_init() {
+        return Err(DitError::NotInitialized)
+    }
 
     let dit_path = find_dit();
     let desc_path = dit_path.join("commit");

@@ -1,13 +1,18 @@
 use std::fs::OpenOptions;
 use std::path::Path;
 use colored::Colorize;
-use crate::arguments::init::{find_dit, get_staged_hash};
+use crate::arguments::init::{find_dit, get_staged_hash, is_init};
 use crate::error::DitError;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
 use crate::utils::{NULL_HASH, real_path, write_hash_file};
 
 pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
+
+    if !is_init() {
+        return Err(DitError::NotInitialized)
+    }
+    
     let dit_path = find_dit();
     
     let staged_hash = get_staged_hash()?;

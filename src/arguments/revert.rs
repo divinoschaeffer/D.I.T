@@ -1,11 +1,15 @@
 use std::fs::OpenOptions;
 use colored::Colorize;
-use crate::arguments::init::{find_info, get_head_hash};
+use crate::arguments::init::{find_info, get_head_hash, is_init};
 use crate::error::DitError;
 use crate::objects::commit::Commit;
 use crate::utils::{NULL_HASH, write_hash_file};
 
 pub fn revert(hash: String) -> Result<(), DitError>{
+
+    if !is_init() {
+        return Err(DitError::NotInitialized)
+    }
     
     if Commit::commit_exist(&hash)? {
         let head = get_head_hash()?;

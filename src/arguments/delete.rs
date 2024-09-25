@@ -3,10 +3,14 @@ use std::io::{ BufRead, BufReader, BufWriter, Write};
 use colored::Colorize;
 use crate::utils::NULL_HASH;
 
-use crate::arguments::init::{find_dit, get_staged_hash};
+use crate::arguments::init::{find_dit, get_staged_hash, is_init};
 use crate::error::DitError;
 
 pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
+
+    if !is_init() {
+        return Err(DitError::NotInitialized)
+    }
 
     let dit_path = find_dit();
     let deleted_path = dit_path.join("deleted");
