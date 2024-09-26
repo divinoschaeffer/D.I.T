@@ -157,7 +157,7 @@ fn main() {
             }
         }
         //REVERT
-        else if let Some(hash) = matches.get_one::<String>("files") {
+        else if let Some(hash) = matches.get_one::<String>("revert") {
             match revert(hash.to_string()) {
                 Ok(()) => (),
                 Err(e) => panic!("Error while reverting to the previous state: {e}"),

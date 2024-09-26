@@ -12,7 +12,7 @@ pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
         return Err(DitError::NotInitialized)
     }
 
-    let dit_path = find_dit();
+    let dit_path = find_dit().unwrap();
     let deleted_path = dit_path.join("deleted");
     let staged_hash = get_staged_hash()?;
 
@@ -35,7 +35,7 @@ pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
 }
 
 pub fn get_deleted_elements() -> Result<Option<Vec<String>>, DitError>{
-    let dit_path = find_dit();
+    let dit_path = find_dit().map_err(DitError::IoError)?;
     let deleted_path = dit_path.join("deleted");
 
     let file = OpenOptions::new()

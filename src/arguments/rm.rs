@@ -1,7 +1,7 @@
 use std::fs::OpenOptions;
 use std::path::Path;
 use colored::Colorize;
-use crate::arguments::init::{find_dit, get_staged_hash, is_init};
+use crate::arguments::init::{ find_objects, find_staged, get_staged_hash, is_init};
 use crate::error::DitError;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
@@ -13,11 +13,9 @@ pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
         return Err(DitError::NotInitialized)
     }
     
-    let dit_path = find_dit();
-    
     let staged_hash = get_staged_hash()?;
-    let object_path = dit_path.join("objects");
-    let staged_path = dit_path.join("staged");
+    let object_path = find_objects();
+    let staged_path = find_staged();
     
     if elements.is_empty() {
         println!("{}", "You need to specify files to remove".blue());

@@ -17,7 +17,7 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError>{
         return Err(DitError::NotInitialized)
     }
 
-    let dit_path = find_dit();
+    let dit_path = find_dit().unwrap();
     let desc_path = dit_path.join("commit");
     let staged_hash = get_staged_hash()?;
     

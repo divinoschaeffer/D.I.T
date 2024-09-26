@@ -1,15 +1,15 @@
 use crate::utils::{NULL_HASH, read_hash_file, write_hash_file};
 use std::fs::{create_dir, File};
-use std::path::{Path, PathBuf};
-use std::{fs, io};
+use std::path::{PathBuf};
+use std::{env, fs, io};
 use colored::Colorize;
 use crate::error::DitError;
 use crate::objects::branch::Branch;
 
 pub fn init_repository() -> Result<(), io::Error> {
-    if Path::new("./.dit").exists() {
-        println!("{}", "dit is already initialized".blue());
-        return Ok(());
+    if is_init() {
+        fs::remove_dir_all("./.dit")?;
+        println!("{}", "Previous dit repository deleted and initiating a new".blue());
     }
 
     fs::create_dir_all("./.dit/objects")?;
@@ -70,30 +70,46 @@ pub fn get_head_hash()  -> Result<String, DitError> {
 }
 
 pub fn find_objects() -> PathBuf{
-    let dit_path = find_dit();
+    let dit_path = find_dit().unwrap();
     dit_path.join("objects")
 }
 
 pub fn find_refs() -> PathBuf{
-    find_dit().join("refs")
+    find_dit().unwrap().join("refs")
 }
 
 pub fn find_staged() -> PathBuf {
-    let dit_path = find_dit();
+    let dit_path = find_dit().unwrap();
     dit_path.join("staged")
 }
 
 pub fn find_info() -> PathBuf {
-    let dit_path = find_dit();
+    let dit_path = find_dit().unwrap();
     dit_path.join("info")
 }
 
-pub fn find_dit() -> PathBuf {
-    PathBuf::from("./.dit")
+pub fn find_dit() -> Result<PathBuf, io::Error> {
+    let initial_dir  = env::current_dir()?;
+
+    let mut current_dir = initial_dir.clone();
+
+    loop {
+        let dit_path = current_dir.join(".dit");
+        if dit_path.exists() && dit_path.is_dir() {
+            return Ok(PathBuf::from(dit_path))
+        }
+
+        match current_dir.parent() {
+            Some(parent) => current_dir = parent.to_path_buf(),
+            None => break,
+        }
+    }
+
+    return Err(io::Error::new(io::ErrorKind::NotFound, "dit not found"))
 }
 
 pub fn is_init() -> bool {
-    find_dit().is_dir()
+    find_dit().unwrap().is_dir()
 }
 
 pub fn get_object_path(objects_path: &PathBuf, hash: &String) -> Result<PathBuf, io::Error> {

@@ -174,7 +174,7 @@ impl NodeType {
                     paths.remove(0);
                     old_node._create_repository_tree(paths)?;
                 } else {
-                    panic!("Error while finding directory already existing");
+                    return Err(DitError::UnexpectedComportement("Error while finding directory, already existing".to_string()))
                 }
             }
         }
