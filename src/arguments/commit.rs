@@ -11,7 +11,7 @@ use super::delete::get_deleted_elements;
 use super::init::get_head_hash;
 use super::rm::find_element_to_remove;
 
-pub fn commit() -> Result<(), DitError>{
+pub fn commit(desc_already_set: bool) -> Result<(), DitError>{
 
     if !is_init() {
         return Err(DitError::NotInitialized)
@@ -25,24 +25,28 @@ pub fn commit() -> Result<(), DitError>{
         println!("{}", "You need to stage elements before commiting".blue());
         return Ok(())
     } else if is_first_commit()? {
-        Command::new("nano")
-            .arg(desc_path.clone())
-            .spawn()
-            .expect("Failed to open nano")
-            .wait()
-            .expect("Error with running nano");
+        if !desc_already_set {
+            Command::new("nano")
+                .arg(desc_path.clone())
+                .spawn()
+                .expect("Failed to open nano")
+                .wait()
+                .expect("Error with running nano");
+        }
         
         let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
         
         create_commit(description, String::from(NULL_HASH), staged_hash)?;
         
     } else {
-        Command::new("nano")
-            .arg(desc_path.clone())
-            .spawn()
-            .expect("Failed to open nano")
-            .wait()
-            .expect("Error with running nano");
+        if !desc_already_set {
+            Command::new("nano")
+                .arg(desc_path.clone())
+                .spawn()
+                .expect("Failed to open nano")
+                .wait()
+                .expect("Error with running nano");
+        }
         
         let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
         let last_commit_hash = get_head_hash()?;
