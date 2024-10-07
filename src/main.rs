@@ -1,5 +1,6 @@
 use clap::{Arg, Command};
 use colored::Colorize;
+
 use dit::arguments;
 use dit::arguments::add;
 use dit::arguments::checkout::checkout;
@@ -162,6 +163,7 @@ fn main() {
                 Ok(()) => (),
                 Err(e) => panic!("Error while reverting to the previous state: {e}"),
             }
+            // COMMIT
         } else {
             match commit(false) {
                 Ok(()) => (),
