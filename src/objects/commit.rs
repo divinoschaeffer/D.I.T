@@ -1,17 +1,19 @@
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
+use std::path::PathBuf;
+
+use ptree2::print_tree;
+use sha1::{Digest, Sha1};
+
 use crate::arguments::init::{
     find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file,
 };
+use crate::display_message::{Color, display_message};
 use crate::error::DitError;
 use crate::objects::branch::Branch;
 use crate::objects::file_objects::tree::Tree;
 use crate::objects::node::Node;
-use crate::utils::{write_hash_file, NULL_HASH};
-use colored::Colorize;
-use ptree2::print_tree;
-use sha1::{Digest, Sha1};
-use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
-use std::path::PathBuf;
+use crate::utils::{NULL_HASH, write_hash_file};
 
 #[derive(Clone, Debug)]
 pub struct Commit {
@@ -211,7 +213,7 @@ impl Commit {
             Commit::create_commit_tree(Branch::get_current_branch()?).map_err(DitError::IoError)?;
         match root {
             Some(tree) => print_tree(&tree).expect("Error while displaying commit tree"),
-            None => println!("{}", "No commit on this branch".blue()),
+            None => display_message("No commit on this branch", Color::BLUE),
         }
         Ok(())
     }

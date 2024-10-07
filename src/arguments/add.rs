@@ -1,8 +1,8 @@
 use std::fs::{self, OpenOptions};
 use std::{io};
 use std::path::PathBuf;
-use colored::Colorize;
 use crate::arguments::init::{find_objects, find_staged, get_staged_hash, is_init};
+use crate::display_message::{Color, display_message};
 use crate::error::DitError;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
@@ -18,9 +18,9 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     let staged_hash = get_staged_hash()?;
 
     let new_elements = process_elements(elements)?;
-    
+
     if new_elements.is_empty() {
-        println!("{}", "You need to specify files to add".blue());
+        display_message("You need to specify files to add", Color::BLUE);
     } else if staged_hash == NULL_HASH {
         
         let tree: Tree = Default::default();

@@ -139,9 +139,7 @@ impl NodeType {
     }
 
     fn create_blob_node(&mut self, paths: &mut Vec<&Path>, path: &&Path, file_name: &str) -> Result<(), DitError>{
-        println!("path blob: {:?}", path);
         let content = read_content_file_from_path(&path).map_err(DitError::IoError)?;
-        println!("content");
         let mut file_blob: Blob = Blob::new(String::from(file_name), content, String::from(""));
         file_blob.create_hash();
         let node: NodeType = NodeType::Blob(file_blob);
