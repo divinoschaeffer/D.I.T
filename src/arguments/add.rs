@@ -1,5 +1,5 @@
 use std::fs::{self, OpenOptions};
-use std::io;
+use std::{io};
 use std::path::PathBuf;
 use colored::Colorize;
 use crate::arguments::init::{find_objects, find_staged, get_staged_hash, is_init};
@@ -40,7 +40,7 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
 
 fn add_elements(elements: &Vec<String>, object_path: &PathBuf, staged_path: &PathBuf, root: &mut NodeType) -> Result<(), DitError> {
     for element in elements {
-        root.create_repository_tree( element)?;
+        root.create_repository_tree(element)?;
     }
 
     let root_hash = root.create_node_hash();
@@ -82,6 +82,5 @@ fn process_elements(elements: Vec<&String>) -> Result<Vec<String>, DitError> {
         }
         index += 1;
     }
-    
     Ok(owned_elements)
 }

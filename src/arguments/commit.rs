@@ -5,7 +5,7 @@ use crate::error::DitError;
 use crate::objects::commit::Commit;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
-use crate::utils::{read_content_file_from_path, real_path, NULL_HASH};
+use crate::utils::{read_content_file_from_path, path_from_dit, NULL_HASH};
 
 use super::delete::get_deleted_elements;
 use super::init::get_head_hash;
@@ -68,7 +68,7 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError>{
         match option_deleted_elements {
             Some(deleted_elements) => {
                 for deleted_element in deleted_elements {
-                    let real_path = real_path(&deleted_element)?;
+                    let real_path = path_from_dit(&deleted_element)?;
 
                     let mut ancestors: Vec<_> = real_path.ancestors().collect();
                     ancestors.pop();

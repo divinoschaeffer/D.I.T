@@ -1,14 +1,15 @@
-use std::{fs::File, io, io::BufWriter, path::{Path, PathBuf}};
+use std::{fs::File, io::BufWriter, path::{Path, PathBuf}};
 
 use sha1::{Digest, Sha1};
 
 use crate::{
     arguments::init::get_object_path,
-    utils::{read_content_file_from_path, real_path},
+    utils::{read_content_file_from_path, path_from_dit},
 };
 use crate::error::DitError;
 use crate::objects::file_objects::blob::Blob;
 use crate::objects::file_objects::tree::Tree;
+use crate::utils::{set_current_dir_to_project_dir};
 
 #[derive(Clone)]
 #[derive(Debug)]
@@ -103,18 +104,16 @@ impl NodeType {
     }
 
     pub fn create_repository_tree(&mut self, element: &String) -> Result<(),DitError>{
-        let real_path = real_path(element)?;
-        if !real_path.exists() {
-            let error = format!("path: {} does not exist",real_path.display());
-            return Err(DitError::IoError(io::Error::new(io::ErrorKind::NotFound, error)));
-        }
+        let path_from_dit = path_from_dit(element)?;
+       
+        set_current_dir_to_project_dir().map_err(DitError::IoError)?;
 
-        let mut ancestors: Vec<_> = real_path.ancestors().collect();
+        let mut ancestors: Vec<_> = path_from_dit.ancestors().collect();
         ancestors.pop();
         ancestors.reverse();
 
         self._create_repository_tree(&mut ancestors)?;
-        
+
         Ok(())
     }
 
@@ -140,7 +139,9 @@ impl NodeType {
     }
 
     fn create_blob_node(&mut self, paths: &mut Vec<&Path>, path: &&Path, file_name: &str) -> Result<(), DitError>{
+        println!("path blob: {:?}", path);
         let content = read_content_file_from_path(&path).map_err(DitError::IoError)?;
+        println!("content");
         let mut file_blob: Blob = Blob::new(String::from(file_name), content, String::from(""));
         file_blob.create_hash();
         let node: NodeType = NodeType::Blob(file_blob);
@@ -178,7 +179,7 @@ impl NodeType {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -204,7 +205,7 @@ impl NodeType {
                 blob.write_content_to_file(file).map_err(DitError::IoError)?;
             }
         }
-        
+
         Ok(())
     }
 
@@ -323,7 +324,7 @@ mod tests{
                 "Ceci est le contenu du fichier 1.".to_string(),
                 "hash_blob_1".to_string(),
             );
-            
+
             let blob3 = Blob::new(
                 "file3.txt".to_string(),
                 "Ceci est le contenu du fichier 3.".to_string(),
@@ -373,21 +374,21 @@ mod tests{
 
             (NodeType::Tree(tree2), NodeType::Tree(tree4), NodeType::Tree(tree5))
         }
-        
+
         fn multiple_same_name_setup() -> (NodeType, NodeType, NodeType){
             let blob1 = Blob::new(
                 "file1.txt".to_string(),
                 "Ceci est le contenu du fichier 1.".to_string(),
                 "hash_blob_1".to_string(),
             );
-            
+
 
             let blob3 = Blob::new(
                 "file3.txt".to_string(),
                 "Ceci est le contenu du fichier 3.".to_string(),
                 "hash_blob_3".to_string(),
             );
-            
+
             let tree1 = Tree::new(
                 "hello".to_string(),
                 vec![
@@ -439,7 +440,7 @@ mod tests{
                 "Ceci est le contenu du fichier 1.".to_string(),
                 "hash_blob_1".to_string(),
             );
-            
+
 
             let blob2 = Blob::new(
                 "file1.txt".to_string(),
@@ -452,7 +453,7 @@ mod tests{
                 "Ceci est le contenu du fichier 3.".to_string(),
                 "hash_blob_3".to_string(),
             );
-            
+
 
             let tree1 = Tree::new(
                 "hello".to_string(),
@@ -504,13 +505,13 @@ mod tests{
             let (n1, n2, n3) = basic_setup();
             assert_eq!(NodeType::merge(n1, n2).unwrap(),n3)
         }
-        
+
         #[test]
         fn multiple_same_name_same_content(){
             let (n1, n2, n3) = multiple_same_name_setup();
             assert_eq!(NodeType::merge(n1, n2).unwrap(),n3)
         }
-        
+
         #[test]
         fn multiple_same_name_different_content(){
             let (n1, n2, n3) = multiple_same_name_different_content_setup();

@@ -5,7 +5,7 @@ use crate::arguments::init::{ find_objects, find_staged, get_staged_hash, is_ini
 use crate::error::DitError;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
-use crate::utils::{NULL_HASH, real_path, write_hash_file};
+use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
 
 pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
 
@@ -29,7 +29,7 @@ pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
         let mut root = NodeType::Tree(tree);
         
         for element in elements {
-            let real_path = real_path(element)?;
+            let real_path = path_from_dit(element)?;
             
             let mut ancestors: Vec<_> = real_path.ancestors().collect();
             ancestors.pop();

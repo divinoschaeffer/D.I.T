@@ -1,8 +1,10 @@
 use std::{env, io};
+use std::env::set_current_dir;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::os::unix::fs::FileExt;
 use std::path::{Component, Path, PathBuf};
+use crate::arguments::init::find_dit;
 use crate::error::DitError;
 
 pub const NULL_HASH: &str = "0000000000000000000000000000000000000000";
@@ -51,7 +53,7 @@ pub fn normalize_path(path: PathBuf) -> PathBuf {
     components.iter().collect()
 }
 
-pub fn real_path(path: &String) -> Result<PathBuf, DitError> {
+pub fn path_from_dit(path: &String) -> Result<PathBuf, DitError> {
     let rel_to_dit = match relative_path_to_dit() {
         Some(rel_to_dit) => rel_to_dit,
         None => {
@@ -136,4 +138,13 @@ pub fn merge_text(text1: String, text2: String) -> String {
     }
 
     result
+}
+
+pub fn set_current_dir_to_project_dir() -> Result<(), io::Error> {
+    let dit_path = find_dit()?;
+    match dit_path.parent() {
+        Some(parent) => set_current_dir(parent)?,
+        _ => return Err(io::Error::new(io::ErrorKind::NotFound, "Error root project not found"))
+    }
+    Ok(())
 }
