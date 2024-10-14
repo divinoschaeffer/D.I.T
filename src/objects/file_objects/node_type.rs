@@ -7,7 +7,7 @@ use std::{
 use sha1::{Digest, Sha1};
 
 use crate::{
-    arguments::init::get_object_path,
+    features::init::get_object_path,
     utils::{path_from_dit, read_content_file_from_path},
 };
 use crate::error::DitError;
@@ -121,6 +121,7 @@ impl NodeType {
         Ok(())
     }
 
+    /// Sub function create_repository_tree
     pub fn _create_repository_tree<'a>(&mut self, paths: &mut Vec<&Path>) -> Result<(), DitError> {
         if paths.is_empty() {
             return Ok(());

@@ -3,9 +3,9 @@ use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write};
 use std::os::unix::fs::FileExt;
 
-use crate::arguments::init::{find_info, find_refs, get_head_hash};
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{find_info, find_refs, get_head_hash};
 use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
 
 pub struct Branch {

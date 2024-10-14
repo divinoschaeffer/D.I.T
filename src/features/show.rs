@@ -1,6 +1,6 @@
-use crate::arguments::init::is_init;
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::is_init;
 use crate::objects::branch::Branch;
 use crate::objects::commit::Commit;
 

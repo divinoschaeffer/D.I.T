@@ -5,11 +5,11 @@ use std::path::PathBuf;
 use ptree2::print_tree;
 use sha1::{Digest, Sha1};
 
-use crate::arguments::init::{
+use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{
     find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file,
 };
-use crate::display_message::{Color, display_message};
-use crate::error::DitError;
 use crate::objects::branch::Branch;
 use crate::objects::file_objects::tree::Tree;
 use crate::objects::node::Node;

@@ -2,8 +2,8 @@ use std::{env, fs, io};
 use std::fs::{create_dir, File};
 use std::path::PathBuf;
 
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
 use crate::objects::branch::Branch;
 use crate::utils::{NULL_HASH, read_hash_file, write_hash_file};
 

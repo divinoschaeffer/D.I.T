@@ -1,9 +1,9 @@
 use std::fs::OpenOptions;
 use std::path::Path;
 
-use crate::arguments::init::{find_objects, find_staged, get_staged_hash, is_init};
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
 use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
