@@ -1,8 +1,8 @@
 use std::process::Command;
 
-use crate::arguments::init::{find_dit, find_objects, get_staged_hash, is_init};
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{find_dit, find_objects, get_staged_hash, is_init};
 use crate::objects::commit::Commit;
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;

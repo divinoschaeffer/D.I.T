@@ -1,9 +1,9 @@
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 
-use crate::arguments::init::{find_dit, get_staged_hash, is_init};
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{find_dit, get_staged_hash, is_init};
 use crate::utils::NULL_HASH;
 
 pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {

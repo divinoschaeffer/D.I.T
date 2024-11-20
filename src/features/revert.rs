@@ -1,8 +1,8 @@
 use std::fs::OpenOptions;
 
-use crate::arguments::init::{find_info, get_head_hash, is_init};
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{find_info, get_head_hash, is_init};
 use crate::objects::commit::Commit;
 use crate::utils::{NULL_HASH, write_hash_file};
 

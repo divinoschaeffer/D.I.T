@@ -9,3 +9,4 @@ pub mod revert;
 pub mod create_branch;
 pub mod checkout;
 pub mod merge;
+pub mod display_message;

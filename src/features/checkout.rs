@@ -1,5 +1,5 @@
-use crate::arguments::init::{find_refs, get_head_hash, is_init};
 use crate::error::DitError;
+use crate::features::init::{find_refs, get_head_hash, is_init};
 use crate::objects::branch::Branch;
 use crate::objects::commit::Commit;
 use crate::utils::NULL_HASH;

@@ -4,13 +4,14 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::os::unix::fs::FileExt;
 use std::path::{Component, Path, PathBuf};
-use crate::arguments::init::find_dit;
+
 use crate::error::DitError;
+use crate::features::init::find_dit;
 
 pub const NULL_HASH: &str = "0000000000000000000000000000000000000000";
 
 pub fn relative_path_to_dit() -> Option<PathBuf> {
-    let initial_dir  = env::current_dir()
+    let initial_dir = env::current_dir()
         .expect("Failed to get current directory");
 
     let mut current_dir = initial_dir.clone();
@@ -53,6 +54,7 @@ pub fn normalize_path(path: PathBuf) -> PathBuf {
     components.iter().collect()
 }
 
+/// Return a result with normalize path from .dit to the specify path
 pub fn path_from_dit(path: &String) -> Result<PathBuf, DitError> {
     let rel_to_dit = match relative_path_to_dit() {
         Some(rel_to_dit) => rel_to_dit,
@@ -67,12 +69,12 @@ pub fn path_from_dit(path: &String) -> Result<PathBuf, DitError> {
 
 pub fn read_hash_file(file: File, pos: u64) -> String {
     let mut buf = [0u8; 40];
-    
+
     file.read_at(&mut buf, pos).unwrap_or_else(|e| {
         panic!("Error while reading hash: {e}");
     });
-    
-    let hash =  String::from_utf8(Vec::from(buf)).unwrap();
+
+    let hash = String::from_utf8(Vec::from(buf)).unwrap();
     hash
 }
 
@@ -88,13 +90,13 @@ pub fn write_header_file(header: String, file: &File, pos: u64) -> Result<(), io
     Ok(())
 }
 
-pub fn write_footer_file(footer: String ,file: File, pos: u64) -> Result<(), io::Error> {
+pub fn write_footer_file(footer: String, file: File, pos: u64) -> Result<(), io::Error> {
     let buf = &Vec::from(footer)[..];
     file.write_at(buf, pos)?;
     Ok(())
 }
 
-pub fn read_content_file_from_path(path: &&Path) -> Result<String,io::Error> {
+pub fn read_content_file_from_path(path: &&Path) -> Result<String, io::Error> {
     let file = File::open(path)?;
     let mut buf_reader = BufReader::new(file);
     let mut contents = String::new();

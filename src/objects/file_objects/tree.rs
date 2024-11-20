@@ -1,8 +1,8 @@
 use std::{fs, fs::File, io::{BufRead, BufReader, BufWriter, Read, Write}, path::PathBuf};
 
-use crate::arguments::init::open_object_file;
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::open_object_file;
 use crate::objects::BLOB;
 use crate::objects::file_objects::blob::Blob;
 use crate::objects::file_objects::node_type::NodeType;

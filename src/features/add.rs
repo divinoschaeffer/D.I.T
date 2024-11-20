@@ -1,10 +1,9 @@
-use std::fs::{self, OpenOptions};
-use std::io;
+use std::fs::OpenOptions;
 use std::path::PathBuf;
 
-use crate::arguments::init::{find_objects, find_staged, get_staged_hash, is_init};
-use crate::display_message::{Color, display_message};
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
+use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
 use crate::objects::file_objects::node_type::NodeType;
 use crate::objects::file_objects::tree::Tree;
 use crate::utils::{NULL_HASH, write_hash_file};
@@ -18,7 +17,7 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     let staged_path = find_staged();
     let staged_hash = get_staged_hash()?;
 
-    let new_elements = process_elements(elements)?;
+    let new_elements: Vec<String> = elements.iter().map(|s| s.to_string()).collect();
 
     if new_elements.is_empty() {
         display_message("You need to specify files to add", Color::BLUE);
@@ -37,6 +36,7 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     Ok(())
 }
 
+/// Add files to dit repository
 fn add_elements(
     elements: &Vec<String>,
     object_path: &PathBuf,
@@ -61,34 +61,4 @@ fn add_elements(
     write_hash_file(root_hash, &file, 0).map_err(DitError::IoError)?;
 
     Ok(())
-}
-
-fn process_elements(elements: Vec<&String>) -> Result<Vec<String>, DitError> {
-    let mut owned_elements: Vec<String> = elements.iter().map(|s| s.to_string()).collect();
-    let mut index = 0;
-
-    while index < owned_elements.len() {
-        let element = &owned_elements[index];
-        let path = PathBuf::from(element);
-
-        if path.is_dir() {
-            match fs::read_dir(path) {
-                Ok(paths) => {
-                    for path in paths {
-                        if let Ok(entry) = path {
-                            if let Some(literal) = entry.path().to_str() {
-                                owned_elements.push(literal.to_string());
-                            }
-                        }
-                    }
-                }
-                Err(e) => Err(DitError::IoError(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    e,
-                )))?,
-            }
-        }
-        index += 1;
-    }
-    Ok(owned_elements)
 }

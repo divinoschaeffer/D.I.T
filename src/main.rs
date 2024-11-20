@@ -1,17 +1,17 @@
 use clap::{Arg, Command};
 use colored::Colorize;
 
-use dit::arguments;
-use dit::arguments::add;
-use dit::arguments::checkout::checkout;
-use dit::arguments::commit::commit;
-use dit::arguments::create_branch::new_branch;
-use dit::arguments::delete::delete;
-use dit::arguments::merge::merge;
-use dit::arguments::message::message;
-use dit::arguments::revert::revert;
-use dit::arguments::rm;
-use dit::arguments::show::show_commit;
+use dit::features;
+use dit::features::add;
+use dit::features::checkout::checkout;
+use dit::features::commit::commit;
+use dit::features::create_branch::new_branch;
+use dit::features::delete::delete;
+use dit::features::merge::merge;
+use dit::features::message::message;
+use dit::features::revert::revert;
+use dit::features::rm;
+use dit::features::show::show_commit;
 
 fn main() {
     let matches = Command::new("cli")
@@ -98,7 +98,7 @@ fn main() {
 
     // INIT
     if let Some(_) = matches.subcommand_matches("init") {
-        match arguments::init::init_repository() {
+        match features::init::init_repository() {
             Ok(()) => println!("{}", "dit is initialize".green()),
             Err(e) => panic!("Error while initializing dit repository: {}", e),
         };
