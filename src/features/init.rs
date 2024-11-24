@@ -14,7 +14,7 @@ pub fn init_repository() -> Result<(), io::Error> {
     }
 
     fs::create_dir_all("./.dit/objects")?;
-    fs::create_dir_all("./.dit/refs/")?;
+    fs::create_dir("./.dit/refs/")?;
 
     init_info_file()?;
 
@@ -110,7 +110,7 @@ pub fn find_dit() -> Result<PathBuf, io::Error> {
 }
 
 pub fn is_init() -> bool {
-    find_dit().unwrap().is_dir()
+    !find_dit().is_err()
 }
 
 pub fn get_object_path(objects_path: &PathBuf, hash: &String) -> Result<PathBuf, io::Error> {
