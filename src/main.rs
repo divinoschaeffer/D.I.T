@@ -1,5 +1,4 @@
 use clap::{Arg, Command};
-use colored::Colorize;
 use std::path::PathBuf;
 use std::fs;
 use dit::features;
@@ -102,7 +101,7 @@ fn main() {
     // INIT
     if let Some(_) = matches.subcommand_matches("init") {
         match features::init::init_repository() {
-            Ok(()) => println!("{}", "dit is initialize".green()),
+            Ok(()) => display_message("dit initialized.", Color::GREEN),
             Err(e) => {
                 if PathBuf::from("./.dit").is_dir() {
                    let _ =  fs::remove_dir_all("./.dit");
@@ -118,7 +117,7 @@ fn main() {
         if let Some(elements) = matches.get_many::<String>("files") {
             let elements: Vec<_> = elements.collect();
             match add::add(elements) {
-                Ok(()) => (),
+                Ok(()) => display_message("Files added.", Color::GREEN),
                 Err(e) => panic!("Error while adding elements to dit : {}", e),
             };
         }

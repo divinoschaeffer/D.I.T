@@ -12,6 +12,8 @@ use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
 use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
 
+use crate::process_path::get_all_files_in_directory;
+
 pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
         return Err(DitError::NotInitialized);
@@ -24,7 +26,7 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     let new_elements: Vec<String> = elements.iter().map(|s| s.to_string()).collect();
 
     if new_elements.is_empty() {
-        display_message("You need to specify files to add", Color::BLUE);
+        display_message("You need to specify files to add.", Color::DEFAULT);
     } else if staged_hash == NULL_HASH {
         let tree: Tree = Default::default();
         add_elements(&new_elements, &object_path, &staged_path, tree)?;
@@ -42,21 +44,23 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
 /// Add files to dit repository
 fn add_elements(
     elements: &Vec<String>,
-    
     object_path: &PathBuf,
     staged_path: &PathBuf,
     root: Tree,
 ) -> Result<(), DitError> {
-    let mut paths_elements: Vec<PathBuf> = vec![];
+    let mut all_files_path: Vec<PathBuf> = vec![];
+
     for element in elements {
-        paths_elements.push(path_from_dit(element)?);
+        let files = get_all_files_in_directory(&path_from_dit(element)?).map_err(|e| {
+            DitError::UnexpectedComportement(format!("Details: {}", e))
+        })?;
+
+        all_files_path.extend(files);
     }
-    let mut root: Node = crt::create_repository_tree(root, paths_elements).map_err(|e| {
+    let root: Node = crt::create_repository_tree(root, all_files_path).map_err(|e| {
         display_message("Error creating repository tree", Color::RED);
         DitError::UnexpectedComportement(format!("Details: {}", e))
     })?;
-
-    println!("{:?}", root.get_children());
 
     transcript_repository_to_object_files(&root, &object_path).map_err(|e| {
         display_message("Error saving repository tree", Color::RED);
@@ -71,6 +75,5 @@ fn add_elements(
         .map_err(DitError::IoError)?;
 
     write_hash_file(root.get_id(), &file, 0).map_err(DitError::IoError)?;
-
     Ok(())
 }
