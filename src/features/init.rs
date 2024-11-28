@@ -29,6 +29,9 @@ pub fn init_repository() -> Result<(), io::Error> {
 }
 
 fn init_object_dir() -> Result<(), io::Error> {
+    display_message("Initializing objects directory", Color::DEFAULT);
+    display_message("Initialized 255 sub directory objects", Color::DEFAULT);
+
     let parent_dir = PathBuf::from("./.dit/objects");
     if !parent_dir.exists() {
         fs::create_dir(&parent_dir)?;
@@ -42,22 +45,27 @@ fn init_object_dir() -> Result<(), io::Error> {
         fs::create_dir(&folder_path)?;
     }
 
+    display_message("Initialized 255 sub directory objects", Color::DEFAULT);
+    display_message("Initialized objects directory", Color::DEFAULT);
+
     Ok(())
 }
 
 fn init_info_file() -> Result<(), io::Error> {
+    display_message("Initializing info file", Color::DEFAULT);
     File::create("./.dit/info")?;
 
     Branch::new_branch(String::from("main"), String::from(NULL_HASH)).unwrap();
-
+    display_message("Initialized info file", Color::DEFAULT);
     Ok(())
 }
 
 fn init_staged_file() -> Result<(), io::Error> {
+    display_message("Initializing staged file", Color::DEFAULT);
     let file = File::create("./.dit/staged")?;
 
     write_hash_file(String::from(NULL_HASH), &file, 0)?;
-
+    display_message("Initialized staged file", Color::DEFAULT);
     Ok(())
 }
 

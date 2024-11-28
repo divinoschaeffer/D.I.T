@@ -1,6 +1,7 @@
 use clap::{Arg, Command};
 use colored::Colorize;
-
+use std::path::PathBuf;
+use std::fs;
 use dit::features;
 use dit::features::add;
 use dit::features::checkout::checkout;
@@ -12,6 +13,8 @@ use dit::features::message::message;
 use dit::features::revert::revert;
 use dit::features::rm;
 use dit::features::show::show_commit;
+use dit::features::display_message::display_message;
+use dit::features::display_message::Color;
 
 fn main() {
     let matches = Command::new("cli")
@@ -100,7 +103,13 @@ fn main() {
     if let Some(_) = matches.subcommand_matches("init") {
         match features::init::init_repository() {
             Ok(()) => println!("{}", "dit is initialize".green()),
-            Err(e) => panic!("Error while initializing dit repository: {}", e),
+            Err(e) => {
+                if PathBuf::from("./.dit").is_dir() {
+                   let _ =  fs::remove_dir_all("./.dit");
+                }
+                display_message("Error initializing dit repository", Color::RED);
+                println!("Error while initializing dit repository: {}", e);
+            }         
         };
     }
 
