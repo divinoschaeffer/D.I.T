@@ -1,12 +1,16 @@
 use std::fs::OpenOptions;
 use std::path::PathBuf;
 
+use repository_tree_creator::features::create_repository_tree as crt;
+use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
+use repository_tree_creator::features::transcript_repository_tree_to_object_files::transcript_repository_to_object_files;
+use repository_tree_creator::models::node::Node;
+use repository_tree_creator::models::tree::Tree;
+
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
-use crate::objects::file_objects::node_type::NodeType;
-use crate::objects::file_objects::tree::Tree;
-use crate::utils::{NULL_HASH, write_hash_file};
+use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
 
 pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
@@ -23,15 +27,14 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
         display_message("You need to specify files to add", Color::BLUE);
     } else if staged_hash == NULL_HASH {
         let tree: Tree = Default::default();
-        let mut root: NodeType = NodeType::Tree(tree);
-
-        add_elements(&new_elements, &object_path, &staged_path, &mut root)?;
+        add_elements(&new_elements, &object_path, &staged_path, tree)?;
     } else {
         let mut tree: Tree = Default::default();
-        tree.get_tree_from_file(staged_hash)?;
-        let mut root = NodeType::Tree(tree);
-
-        add_elements(&new_elements, &object_path, &staged_path, &mut root)?;
+            get_repository_tree_from_object_files(&mut tree, &staged_hash, &object_path).map_err(|e| {
+            display_message("Error getting previous staged files", Color::RED);
+            DitError::UnexpectedComportement(format!("Details: {}", e))
+        })?;
+        add_elements(&new_elements, &object_path, &staged_path, tree)?;
     }
     Ok(())
 }
@@ -39,17 +42,26 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
 /// Add files to dit repository
 fn add_elements(
     elements: &Vec<String>,
+    
     object_path: &PathBuf,
     staged_path: &PathBuf,
-    root: &mut NodeType,
+    root: Tree,
 ) -> Result<(), DitError> {
+    let mut paths_elements: Vec<PathBuf> = vec![];
     for element in elements {
-        root.create_repository_tree(element)?;
+        paths_elements.push(path_from_dit(element)?);
     }
+    let mut root: Node = crt::create_repository_tree(root, paths_elements).map_err(|e| {
+        display_message("Error creating repository tree", Color::RED);
+        DitError::UnexpectedComportement(format!("Details: {}", e))
+    })?;
 
-    let root_hash = root.create_node_hash();
+    println!("{:?}", root.get_children());
 
-    root.transcript_to_files(&object_path)?;
+    transcript_repository_to_object_files(&root, &object_path).map_err(|e| {
+        display_message("Error saving repository tree", Color::RED);
+        DitError::UnexpectedComportement(format!("Details: {}", e))
+    })?;
 
     let file = OpenOptions::new()
         .write(true)
@@ -58,7 +70,7 @@ fn add_elements(
         .open(staged_path)
         .map_err(DitError::IoError)?;
 
-    write_hash_file(root_hash, &file, 0).map_err(DitError::IoError)?;
+    write_hash_file(root.get_id(), &file, 0).map_err(DitError::IoError)?;
 
     Ok(())
 }
