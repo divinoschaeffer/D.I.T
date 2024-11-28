@@ -33,7 +33,7 @@ pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
 }
 
 pub fn get_deleted_elements() -> Result<Option<Vec<String>>, DitError> {
-    let dit_path = find_dit().map_err(DitError::IoError)?;
+    let dit_path = find_dit().unwrap();
     let deleted_path = dit_path.join("deleted");
 
     let file = OpenOptions::new()

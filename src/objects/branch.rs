@@ -26,15 +26,12 @@ impl Branch {
         let ref_path = find_refs();
         let file_path = ref_path.join(name.clone());
 
-        if file_path.is_file() {
-            display_message("Branch with same name already exist", Color::BLUE);
+        if file_path.exists() {
+            display_message("Branch with same name already exist, cannot create the branch", Color::RED);
             return Err(DitError::IoError(Error::from(io::ErrorKind::InvalidData)));
         }
-
         File::create(file_path).map_err(DitError::IoError)?;
-
         Self::set_info_file(name.clone(), head.clone()).map_err(DitError::IoError)?;
-
         if head != NULL_HASH {
             let branch_path = format!("./.dit/refs/{}", name);
 
