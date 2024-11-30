@@ -4,7 +4,7 @@ use std::io;
 
 pub fn get_all_files_in_directory(dir: &PathBuf) -> Result<Vec<PathBuf>, io::Error> {
     if !dir.is_dir() {
-        return Ok(Vec::new());
+        return Ok(vec![dir.clone()]);
     } 
     
     let mut files: Vec<PathBuf> = Vec::new();

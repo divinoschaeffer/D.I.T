@@ -31,11 +31,13 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
         let tree: Tree = Default::default();
         add_elements(&new_elements, &object_path, &staged_path, tree)?;
     } else {
+        println!("new");
         let mut tree: Tree = Default::default();
-            get_repository_tree_from_object_files(&mut tree, &staged_hash, &object_path).map_err(|e| {
+        get_repository_tree_from_object_files(&mut tree, &staged_hash, &object_path).map_err(|e| {
             display_message("Error getting previous staged files", Color::RED);
             DitError::UnexpectedComportement(format!("Details: {}", e))
         })?;
+        println!("{:?}", tree);
         add_elements(&new_elements, &object_path, &staged_path, tree)?;
     }
     Ok(())
@@ -57,11 +59,12 @@ fn add_elements(
 
         all_files_path.extend(files);
     }
+    println!("{:?}", all_files_path);
     let root: Node = crt::create_repository_tree(root, all_files_path).map_err(|e| {
         display_message("Error creating repository tree", Color::RED);
         DitError::UnexpectedComportement(format!("Details: {}", e))
     })?;
-
+    println!("{:?}", root);
     transcript_repository_to_object_files(&root, &object_path).map_err(|e| {
         display_message("Error saving repository tree", Color::RED);
         DitError::UnexpectedComportement(format!("Details: {}", e))
