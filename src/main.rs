@@ -1,19 +1,21 @@
-use clap::{Arg, Command};
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
+
+use clap::{Arg, Command};
+
 use dit::features;
 use dit::features::add;
 use dit::features::checkout::checkout;
 use dit::features::commit::commit;
 use dit::features::create_branch::new_branch;
 use dit::features::delete::delete;
+use dit::features::display_message::Color;
+use dit::features::display_message::display_message;
 use dit::features::merge::merge;
 use dit::features::message::message;
 use dit::features::revert::revert;
 use dit::features::rm;
 use dit::features::show::show_commit;
-use dit::features::display_message::display_message;
-use dit::features::display_message::Color;
 
 fn main() {
     let matches = Command::new("cli")
@@ -104,11 +106,10 @@ fn main() {
             Ok(()) => display_message("dit initialized.", Color::GREEN),
             Err(e) => {
                 if PathBuf::from("./.dit").is_dir() {
-                   let _ =  fs::remove_dir_all("./.dit");
+                    let _ = fs::remove_dir_all("./.dit");
                 }
-                display_message("Error initializing dit repository", Color::RED);
-                println!("Error while initializing dit repository: {}", e);
-            }         
+                display_message(format!("Error initializing dit repository: {}", e).as_str(), Color::RED);
+            }
         };
     }
 
@@ -118,7 +119,7 @@ fn main() {
             let elements: Vec<_> = elements.collect();
             match add::add(elements) {
                 Ok(()) => display_message("Files added.", Color::GREEN),
-                Err(e) => panic!("Error while adding elements to dit : {}", e),
+                Err(e) => display_message(format!("Error adding elements to dit : {}", e).as_str(), Color::RED),
             };
         }
     }

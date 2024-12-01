@@ -10,9 +10,8 @@ use repository_tree_creator::models::tree::Tree;
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
-use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
-
 use crate::process_path::get_all_files_in_directory;
+use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
 
 pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
@@ -31,13 +30,11 @@ pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
         let tree: Tree = Default::default();
         add_elements(&new_elements, &object_path, &staged_path, tree)?;
     } else {
-        println!("new");
         let mut tree: Tree = Default::default();
         get_repository_tree_from_object_files(&mut tree, &staged_hash, &object_path).map_err(|e| {
             display_message("Error getting previous staged files", Color::RED);
             DitError::UnexpectedComportement(format!("Details: {}", e))
         })?;
-        println!("{:?}", tree);
         add_elements(&new_elements, &object_path, &staged_path, tree)?;
     }
     Ok(())
@@ -59,12 +56,10 @@ fn add_elements(
 
         all_files_path.extend(files);
     }
-    println!("{:?}", all_files_path);
     let root: Node = crt::create_repository_tree(root, all_files_path).map_err(|e| {
         display_message("Error creating repository tree", Color::RED);
         DitError::UnexpectedComportement(format!("Details: {}", e))
     })?;
-    println!("{:?}", root);
     transcript_repository_to_object_files(&root, &object_path).map_err(|e| {
         display_message("Error saving repository tree", Color::RED);
         DitError::UnexpectedComportement(format!("Details: {}", e))

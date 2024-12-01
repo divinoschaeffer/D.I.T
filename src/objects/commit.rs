@@ -2,8 +2,9 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
 use std::path::PathBuf;
 
+use dit_id_generator::features::generator::generate;
+use dit_id_generator::traits::generator::Generator;
 use ptree2::print_tree;
-use sha1::{Digest, Sha1};
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
@@ -25,19 +26,22 @@ pub struct Commit {
 
 impl Commit {
     pub fn new(tree: String, parent: String, description: String) -> Commit {
-        let ens = tree.clone() + &*parent + &*description;
-        let hash = Sha1::digest(ens.as_bytes());
-        let string_hash = hex::encode(hash);
-        Commit {
-            hash: string_hash,
+        let mut commit = Commit {
+            hash: String::from(""),
             tree,
             parent,
             description,
-        }
+        };
+        let _ = commit.generate_id();
+        commit
     }
 
     pub fn get_hash(&self) -> &String {
         &self.hash
+    }
+
+    pub fn set_hash(&mut self, hash: String) {
+        self.hash = hash;
     }
 
     pub fn get_parent(&self) -> &String {
@@ -232,5 +236,14 @@ impl Commit {
         let path = PathBuf::from("./");
         tree.delete_directory(path)?;
         Ok(())
+    }
+}
+
+impl Generator for Commit {
+    fn generate_id(&mut self) -> String {
+        let content = self.tree.clone() + &*self.parent + &*self.description;
+        let hash = generate(content);
+        self.set_hash(hash.clone());
+        hash
     }
 }
