@@ -1,6 +1,6 @@
+use std::{io, process};
 use std::fs::{File, OpenOptions};
-use std::io;
-use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write};
+use std::io::{BufRead, BufReader, BufWriter, ErrorKind, Write};
 use std::os::unix::fs::FileExt;
 
 use crate::error::DitError;
@@ -23,12 +23,16 @@ impl Branch {
     }
 
     pub fn new_branch(name: String, head: String) -> Result<Branch, DitError> {
+        if !Self::is_name_ok(&name) {
+            display_message("Branch name must not contains '/'.", Color::RED);
+            process::exit(1);
+        }
         let ref_path = find_refs();
-        let file_path = ref_path.join(name.clone());
+        let file_path = ref_path.join(&name);
 
         if file_path.exists() {
             display_message("Branch with same name already exist, cannot create the branch", Color::RED);
-            return Err(DitError::IoError(Error::from(io::ErrorKind::InvalidData)));
+            process::exit(1);
         }
         File::create(file_path).map_err(DitError::IoError)?;
         Self::set_info_file(name.clone(), head.clone()).map_err(DitError::IoError)?;
@@ -44,11 +48,14 @@ impl Branch {
             let mut writer = BufWriter::new(file);
             writeln!(writer, "{}", head).map_err(DitError::IoError)?;
         }
-
         Ok(Branch {
             head,
             name,
         })
+    }
+
+    pub fn is_name_ok(name: &String) -> bool {
+        !(name.contains('/') || name.contains('\\'))
     }
 
     pub fn exist(name: String) -> bool {

@@ -4,6 +4,7 @@ use crate::objects::branch::Branch;
 
 pub fn new_branch(name: &String) -> Result<(), DitError> {
     if !is_init() {
+        println!("init");
         return Err(DitError::NotInitialized);
     }
 

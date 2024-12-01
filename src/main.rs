@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, process};
 use std::path::PathBuf;
 
 use clap::{Arg, Command};
@@ -108,7 +108,8 @@ fn main() {
                 if PathBuf::from("./.dit").is_dir() {
                     let _ = fs::remove_dir_all("./.dit");
                 }
-                display_message(format!("Error initializing dit repository: {}", e).as_str(), Color::RED);
+                display_message(format!("Error initializing dit repository: {}.", e).as_str(), Color::RED);
+                process::exit(1);
             }
         };
     }
@@ -119,7 +120,10 @@ fn main() {
             let elements: Vec<_> = elements.collect();
             match add::add(elements) {
                 Ok(()) => display_message("Files added.", Color::GREEN),
-                Err(e) => display_message(format!("Error adding elements to dit : {}", e).as_str(), Color::RED),
+                Err(e) => {
+                    display_message(format!("Error adding elements to dit : {}.", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             };
         }
     }
@@ -152,11 +156,17 @@ fn main() {
         if let Some(mes) = matches.get_one::<String>("message") {
             match message(mes.parse().unwrap()) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while writing message: {}", e),
+                Err(e) => {
+                    display_message(format!("Error while writing message: {}.", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
             match commit(true) {
-                Ok(()) => (),
-                Err(e) => panic!("Error while commiting: {}", e),
+                Ok(()) => display_message("Commit created.", Color::GREEN),
+                Err(e) => {
+                    display_message(format!("Error commiting elements: {}.", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
         // SHOWCOMMIT
@@ -210,4 +220,5 @@ fn main() {
             }
         }
     }
+    process::exit(0);
 }
