@@ -5,14 +5,15 @@ use std::path::PathBuf;
 use dit_id_generator::features::generator::generate;
 use dit_id_generator::traits::generator::Generator;
 use ptree2::print_tree;
+use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
+use repository_tree_creator::features::transcript_repository_to_files::{Mode, transcript_repository_tree_to_files};
+use repository_tree_creator::models::node::Node::TreeNode;
+use repository_tree_creator::models::tree::Tree;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
-use crate::features::init::{
-    find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file,
-};
+use crate::features::init::{find_dit, find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file};
 use crate::objects::branch::Branch;
-use crate::objects::file_objects::tree::Tree;
 use crate::objects::node::Node;
 use crate::utils::{NULL_HASH, write_hash_file};
 
@@ -224,17 +225,16 @@ impl Commit {
 
     pub fn recreate_files(&self) -> Result<(), DitError> {
         let mut tree = Tree::default();
-        tree.get_tree_from_file(self.tree.clone())?;
-        let path = PathBuf::from("./");
-        tree.create_directory_from_tree(path)?;
-        Ok(())
-    }
-
-    pub fn delete_files(&self) -> Result<(), DitError> {
-        let mut tree = Tree::default();
-        tree.get_tree_from_file(self.tree.clone())?;
-        let path = PathBuf::from("./");
-        tree.delete_directory(path)?;
+        let dit_path = find_dit().unwrap();
+        let project_path = dit_path.parent().unwrap();
+        get_repository_tree_from_object_files(&mut tree, &self.tree, &find_objects()).map_err(|e| {
+            display_message("Error getting files", Color::RED);
+            DitError::UnexpectedComportement(format!("Details: {}", e))
+        })?;
+        transcript_repository_tree_to_files(&TreeNode(tree), &project_path.to_path_buf(), &Mode::Complete).map_err(|e1| {
+            display_message("Error recreating files.", Color::RED);
+            DitError::UnexpectedComportement(format!("Details: {}.", e1))
+        })?;
         Ok(())
     }
 }

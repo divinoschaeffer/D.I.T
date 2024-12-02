@@ -1,4 +1,7 @@
+use std::process;
+
 use crate::error::DitError;
+use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_refs, get_head_hash, is_init};
 use crate::objects::branch::Branch;
 use crate::objects::commit::Commit;
@@ -6,13 +9,14 @@ use crate::utils::NULL_HASH;
 
 pub fn checkout(name: &String) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let branch_path = find_refs().join(name.to_owned());
 
     if branch_path.exists() {
-        Commit::get_commit_from_file(get_head_hash()?).map_err(DitError::IoError)?.delete_files()?;
+        Commit::get_commit_from_file(get_head_hash()?).map_err(DitError::IoError)?;
 
         let branch_commits = Commit::get_commit_list(name.to_string()).map_err(DitError::IoError)?;
 

@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
 use std::path::PathBuf;
+use std::process;
 
 use repository_tree_creator::features::create_repository_tree as crt;
 use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
@@ -15,7 +16,8 @@ use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
 
 pub fn add(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let object_path = find_objects();

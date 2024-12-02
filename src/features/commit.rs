@@ -1,3 +1,4 @@
+use std::process;
 use std::process::Command;
 
 use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
@@ -19,7 +20,8 @@ use super::init::get_head_hash;
 
 pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let dit_path = find_dit().unwrap();
