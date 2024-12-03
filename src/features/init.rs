@@ -8,13 +8,14 @@ use crate::objects::branch::Branch;
 use crate::utils::{NULL_HASH, read_hash_file, write_hash_file};
 
 pub fn init_repository() -> Result<(), io::Error> {
-    if is_init() {
-        fs::remove_dir_all("./.dit")?;
-        display_message("Previous dit repository deleted and initiating a new", Color::BLUE);
+    let dit_path = PathBuf::from("./.dit");
+    if dit_path.is_dir() {
+        fs::remove_dir_all(dit_path)?;
     }
-
     fs::create_dir_all("./.dit/objects")?;
     fs::create_dir("./.dit/refs/")?;
+    
+    init_object_dir()?;
 
     init_info_file()?;
 
@@ -27,19 +28,44 @@ pub fn init_repository() -> Result<(), io::Error> {
     Ok(())
 }
 
-fn init_info_file() -> Result<(), io::Error> {
-    File::create("./.dit/info")?;
+fn init_object_dir() -> Result<(), io::Error> {
+    display_message("Initializing objects directory", Color::DEFAULT);
+    display_message("Initialized 255 sub directory objects", Color::DEFAULT);
 
-    Branch::new_branch(String::from("main"), String::from(NULL_HASH)).unwrap();
+    let parent_dir = PathBuf::from("./.dit/objects");
+    if !parent_dir.exists() {
+        fs::create_dir(&parent_dir)?;
+    }
+
+    for i in 0..=255 {
+        let folder_name = format!("{:02x}", i);
+
+        let folder_path = parent_dir.join(folder_name);
+
+        fs::create_dir(&folder_path)?;
+    }
+
+    display_message("Initialized 255 sub directory objects", Color::DEFAULT);
+    display_message("Initialized objects directory", Color::DEFAULT);
 
     Ok(())
 }
 
+fn init_info_file() -> Result<(), io::Error> {
+    display_message("Initializing info file", Color::DEFAULT);
+    File::create("./.dit/info")?;
+
+    Branch::new_branch(String::from("main"), String::from(NULL_HASH)).unwrap();
+    display_message("Initialized info file", Color::DEFAULT);
+    Ok(())
+}
+
 fn init_staged_file() -> Result<(), io::Error> {
+    display_message("Initializing staged file", Color::DEFAULT);
     let file = File::create("./.dit/staged")?;
 
     write_hash_file(String::from(NULL_HASH), &file, 0)?;
-
+    display_message("Initialized staged file", Color::DEFAULT);
     Ok(())
 }
 
@@ -89,28 +115,23 @@ pub fn find_info() -> PathBuf {
     dit_path.join("info")
 }
 
-pub fn find_dit() -> Result<PathBuf, io::Error> {
-    let initial_dir = env::current_dir()?;
-
-    let mut current_dir = initial_dir.clone();
+pub fn find_dit() -> Option<PathBuf> {
+    let mut current_path = env::current_dir().ok()?;
 
     loop {
-        let dit_path = current_dir.join(".dit");
-        if dit_path.exists() && dit_path.is_dir() {
-            return Ok(PathBuf::from(dit_path));
+        let dit = current_path.join(".dit");
+        if dit.is_dir() {
+            return Some(dit);
         }
-
-        match current_dir.parent() {
-            Some(parent) => current_dir = parent.to_path_buf(),
-            None => break,
-        }
+        current_path = current_path.parent()?.to_path_buf();
     }
-
-    return Err(io::Error::new(io::ErrorKind::NotFound, "dit not found"));
 }
 
 pub fn is_init() -> bool {
-    !find_dit().is_err()
+    if let Some(_) = find_dit() {
+        return true;
+    }
+    return false;
 }
 
 pub fn get_object_path(objects_path: &PathBuf, hash: &String) -> Result<PathBuf, io::Error> {

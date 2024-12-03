@@ -143,10 +143,12 @@ pub fn merge_text(text1: String, text2: String) -> String {
 }
 
 pub fn set_current_dir_to_project_dir() -> Result<(), io::Error> {
-    let dit_path = find_dit()?;
-    match dit_path.parent() {
-        Some(parent) => set_current_dir(parent)?,
-        _ => return Err(io::Error::new(io::ErrorKind::NotFound, "Error root project not found"))
+    if let Some(dit_path) = find_dit() {
+        match dit_path.parent() {
+            Some(parent) => set_current_dir(parent)?,
+            _ => return Err(io::Error::new(io::ErrorKind::NotFound, "Error root project not found"))
+        }
+        return Ok(());
     }
-    Ok(())
+    Err(io::Error::new(io::ErrorKind::NotFound, "Error setting current dir"))
 }

@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::process;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
@@ -8,7 +9,8 @@ use crate::utils::NULL_HASH;
 
 pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let dit_path = find_dit().unwrap();
@@ -33,7 +35,7 @@ pub fn delete(elements: Vec<&String>) -> Result<(), DitError> {
 }
 
 pub fn get_deleted_elements() -> Result<Option<Vec<String>>, DitError> {
-    let dit_path = find_dit().map_err(DitError::IoError)?;
+    let dit_path = find_dit().unwrap();
     let deleted_path = dit_path.join("deleted");
 
     let file = OpenOptions::new()
