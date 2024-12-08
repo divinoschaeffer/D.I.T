@@ -1,16 +1,21 @@
-use std::fs::OpenOptions;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process;
+
+use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
+use repository_tree_creator::features::transcript_repository_tree_to_object_files::transcript_repository_to_object_files;
+use repository_tree_creator::models::node::Node;
+use repository_tree_creator::models::node::Node::TreeNode;
+use repository_tree_creator::models::tree::Tree;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
-use crate::objects::file_objects::node_type::NodeType;
-use crate::objects::file_objects::tree::Tree;
-use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
+use crate::utils::{clean_path, NULL_HASH, write_hash_file};
 
 pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let staged_hash = get_staged_hash()?;
@@ -22,55 +27,64 @@ pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
     } else if staged_hash == NULL_HASH {
         display_message("You need to add files before remove them", Color::BLUE);
     } else {
-        let mut tree = Tree::new(String::from(""), Vec::new(), String::from(staged_hash.clone()));
+        let mut tree = Tree::default();
 
-        tree.get_tree_from_file(staged_hash)?;
+        get_repository_tree_from_object_files(&mut tree, &staged_hash, &object_path).map_err(|e| {
+            display_message("Error getting files", Color::RED);
+            DitError::UnexpectedComportement(format!("Details: {}", e))
+        })?;
 
-        let mut root = NodeType::Tree(tree);
+        let mut root = TreeNode(tree);
+
+        let elements = clean_path(
+            elements.into_iter()
+                .map(|p| PathBuf::from(p))
+                .collect()
+        )?;
 
         for element in elements {
-            let real_path = path_from_dit(element)?;
-
-            let mut ancestors: Vec<_> = real_path.ancestors().collect();
+            let mut ancestors: Vec<_> = element.ancestors().collect();
             ancestors.pop();
             ancestors.reverse();
 
             find_element_to_remove(&mut root, &mut ancestors);
         }
+        transcript_repository_to_object_files(&root, &object_path).map_err(|e1| {
+            display_message("Error recreating files.", Color::RED);
+            DitError::UnexpectedComportement(format!("Details: {}.", e1))
+        })?;
 
-        let root_hash = root.create_node_hash();
-
-        root.transcript_to_files(&object_path)?;
-
-        let file = OpenOptions::new()
-            .write(true)
-            .append(false)
-            .create(true)
-            .open(staged_path).unwrap();
-
-        write_hash_file(root_hash, &file, 0).unwrap();
+        write_hash_file(root.get_id(), staged_path, 0).unwrap();
     }
 
     Ok(())
 }
 
-pub fn find_element_to_remove(root: &mut NodeType, paths: &mut Vec<&Path>) {
+pub fn find_element_to_remove(root: &mut Node, paths: &mut Vec<&Path>) {
     if paths.is_empty() {
         return;
     }
     let path = paths[0];
     let file_name = path.file_name().unwrap().to_str().unwrap();
 
-    if let NodeType::Tree(ref mut tree) = root {
-        let tree_copy = tree.clone();
-        if let Some(node) = tree.find_node_by_name(String::from(file_name)) {
+    if let TreeNode(ref mut tree) = root {
+        let mut tree_copy = tree.clone();
+        if let Some(node) = tree.get_mut_children()
+            .iter()
+            .find(|x| x.get_name() == file_name) {
             if paths.len() == 1 {
-                if let Some(index) = tree_copy.find_node_index(node) {
-                    tree.get_mut_nodes().remove(index);
+                if let Some(index) = tree_copy
+                    .get_mut_children()
+                    .iter()
+                    .position(|x1| x1.get_path() == node.get_path() && Node::is_same_type(x1, node)) {
+                    tree.get_mut_children().remove(index);
                 }
             } else {
-                if let Some(index) = tree_copy.find_node_index(node) {
-                    let children = tree.get_mut_nodes();
+                if let Some(index) = tree_copy
+                    .get_mut_children()
+                    .iter()
+                    .position(|x1| x1.get_path() == node.get_path() && Node::is_same_type(x1, node)) {
+                    let children = tree.get_mut_children();
                     paths.remove(0);
                     find_element_to_remove(&mut children[index], paths);
                 }

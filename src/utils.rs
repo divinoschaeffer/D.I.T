@@ -1,12 +1,13 @@
 use std::{env, io};
-use std::env::set_current_dir;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{BufReader, Read};
-use std::os::unix::fs::FileExt;
 use std::path::{Component, Path, PathBuf};
 
+use dit_file_encryptor::CompressedFile;
+use dit_file_encryptor::write_string_file_gz;
+
 use crate::error::DitError;
-use crate::features::init::find_dit;
+use crate::process_path::get_all_files_in_directory;
 
 pub const NULL_HASH: &str = "0000000000000000000000000000000000000000";
 
@@ -55,7 +56,7 @@ pub fn normalize_path(path: PathBuf) -> PathBuf {
 }
 
 /// Return a result with normalize path from .dit to the specify path
-pub fn path_from_dit(path: &String) -> Result<PathBuf, DitError> {
+pub fn path_from_dit(path: &PathBuf) -> Result<PathBuf, DitError> {
     let rel_to_dit = match relative_path_to_dit() {
         Some(rel_to_dit) => rel_to_dit,
         None => {
@@ -67,36 +68,36 @@ pub fn path_from_dit(path: &String) -> Result<PathBuf, DitError> {
     Ok(norm_path)
 }
 
-pub fn read_hash_file(file: File, pos: u64) -> String {
-    let mut buf = [0u8; 40];
+pub fn read_hash_file(file_path: PathBuf, pos: usize) -> Result<String, DitError> {
+    let mut reader = CompressedFile::new(file_path)
+        .open_for_read()
+        .map_err(|e| DitError::IoError(e))?;
 
-    file.read_at(&mut buf, pos).unwrap_or_else(|e| {
-        panic!("Error while reading hash: {e}");
-    });
+    let mut buf = String::new();
 
-    let hash = String::from_utf8(Vec::from(buf)).unwrap();
-    hash
+    reader.read_to_string(&mut buf)
+        .map_err(|e1| DitError::IoError(e1))?;
+
+    let infos: Vec<&str> = buf
+        .split_whitespace()
+        .collect();
+
+    Ok(String::from(infos[pos]))
 }
 
-pub fn write_hash_file(hash: String, file: &File, pos: u64) -> Result<(), io::Error> {
-    let buf = &Vec::from(hash)[..];
-    file.write_at(buf, pos)?;
+pub fn write_hash_file(hash: String, path: PathBuf, pos: u64) -> Result<(), io::Error> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .read(true)
+        .create(true)
+        .open(path)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    write_string_file_gz(hash, &mut file, pos)?;
     Ok(())
 }
 
-pub fn write_header_file(header: String, file: &File, pos: u64) -> Result<(), io::Error> {
-    let buf = &Vec::from(header)[..];
-    file.write_at(buf, pos)?;
-    Ok(())
-}
-
-pub fn write_footer_file(footer: String, file: File, pos: u64) -> Result<(), io::Error> {
-    let buf = &Vec::from(footer)[..];
-    file.write_at(buf, pos)?;
-    Ok(())
-}
-
-pub fn read_content_file_from_path(path: &&Path) -> Result<String, io::Error> {
+pub fn read_content_from_non_encrypted_file(path: &&Path) -> Result<String, io::Error> {
     let file = File::open(path)?;
     let mut buf_reader = BufReader::new(file);
     let mut contents = String::new();
@@ -104,49 +105,22 @@ pub fn read_content_file_from_path(path: &&Path) -> Result<String, io::Error> {
     Ok(contents)
 }
 
-pub fn merge_text(text1: String, text2: String) -> String {
-    let mut result = String::new();
-    let mut in_conflict = false;
+pub fn clean_path(paths: Vec<PathBuf>) -> Result<Vec<PathBuf>, DitError> {
+    let mut all_files_path: Vec<PathBuf> = vec![];
 
-    for diff in diff::lines(&text1, &text2) {
-        match diff {
-            diff::Result::Left(old) => {
-                if !in_conflict {
-                    result.push_str("\n<<<<<< HEAD (current change)\n");
-                    in_conflict = true;
-                }
-                result.push_str(old);
-            }
-            diff::Result::Right(new) => {
-                if in_conflict {
-                    result.push_str("\n======\n");
-                }
-                result.push_str(new);
-                result.push_str("\n>>>>>> (incoming change)\n");
-                in_conflict = false; // End the conflict block
-            }
-            diff::Result::Both(common, _) => {
-                if in_conflict {
-                    result.push_str("\n======\n>>>>>> (incoming change)\n");
-                    in_conflict = false; // Close the conflict block
-                }
-                result.push_str(common);
-            }
-        }
+    for element in paths {
+        let total_files = get_all_files_in_directory(&element).map_err(|e| {
+            DitError::UnexpectedComportement(format!("Details: {}", e))
+        })?;
+        let clean_files: Result<Vec<PathBuf>, DitError> = total_files
+            .into_iter()
+            .map(|file| path_from_dit(&file))
+            .collect();
+
+        let clean_files = clean_files?;
+
+        all_files_path.extend(clean_files);
     }
 
-    if in_conflict {
-        result.push_str("\n======\n>>>>>> (incoming change)\n");
-    }
-
-    result
-}
-
-pub fn set_current_dir_to_project_dir() -> Result<(), io::Error> {
-    let dit_path = find_dit()?;
-    match dit_path.parent() {
-        Some(parent) => set_current_dir(parent)?,
-        _ => return Err(io::Error::new(io::ErrorKind::NotFound, "Error root project not found"))
-    }
-    Ok(())
+    Ok(all_files_path)
 }

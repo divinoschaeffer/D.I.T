@@ -1,4 +1,4 @@
-use std::fs::OpenOptions;
+use std::process;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
@@ -8,7 +8,8 @@ use crate::utils::{NULL_HASH, write_hash_file};
 
 pub fn revert(hash: String) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     if Commit::commit_exist(&hash)? {
@@ -18,17 +19,11 @@ pub fn revert(hash: String) -> Result<(), DitError> {
         } else {
             let info_path = find_info();
 
-            Commit::get_commit_from_file(head).map_err(DitError::IoError)?.delete_files()?;
+            Commit::get_commit_from_file(head).map_err(DitError::IoError)?;
             let commit = Commit::get_commit_from_file(hash).map_err(DitError::IoError)?;
             commit.recreate_files()?;
 
-            let info_file = OpenOptions::new()
-                .write(true)
-                .append(false)
-                .create(false)
-                .open(info_path).map_err(DitError::IoError)?;
-
-            write_hash_file(commit.get_hash().clone(), &info_file, 5).map_err(DitError::IoError)?;
+            write_hash_file(commit.get_hash().clone(), info_path, 5).map_err(DitError::IoError)?;
         }
     } else {
         display_message("Commit ID not recognized", Color::BLUE);

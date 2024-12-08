@@ -1,18 +1,18 @@
 use std::fmt;
-use std::fmt::{Formatter};
+use std::fmt::Formatter;
 
 #[derive(Debug)]
 pub enum DitError {
     NotInitialized,
     IoError(std::io::Error),
-    UnexpectedComportement(String)
+    UnexpectedComportement(String),
 }
 
 impl fmt::Display for DitError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             DitError::NotInitialized => write!(f, "Repository dit not initialized"),
-            DitError::IoError(e) => write!(f, "IO error: {}",e),
+            DitError::IoError(e) => write!(f, "IO error: {}", e),
             DitError::UnexpectedComportement(message) => write!(f, "{}", message),
         }
     }

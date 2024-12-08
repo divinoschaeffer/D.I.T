@@ -1,24 +1,33 @@
+use std::path::PathBuf;
+use std::process;
 use std::process::Command;
+
+use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
+use repository_tree_creator::features::merge_repository_trees::{merge_repository_trees, Mode};
+use repository_tree_creator::features::remove_element_from_repository_tree::remove_element_from_repository_tree;
+use repository_tree_creator::features::transcript_repository_tree_to_object_files::transcript_repository_to_object_files;
+use repository_tree_creator::models::node::Node;
+use repository_tree_creator::models::node::Node::TreeNode;
+use repository_tree_creator::models::tree::Tree;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
-use crate::features::init::{find_dit, find_objects, get_staged_hash, is_init};
+use crate::features::init::{find_dit, get_staged_hash, is_init};
 use crate::objects::commit::Commit;
-use crate::objects::file_objects::node_type::NodeType;
-use crate::objects::file_objects::tree::Tree;
-use crate::utils::{NULL_HASH, path_from_dit, read_content_file_from_path};
+use crate::utils::{NULL_HASH, path_from_dit, read_content_from_non_encrypted_file};
 
 use super::delete::get_deleted_elements;
 use super::init::get_head_hash;
-use super::rm::find_element_to_remove;
 
 pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let dit_path = find_dit().unwrap();
     let desc_path = dit_path.join("commit");
+    let objects_path = dit_path.join("objects");
     let staged_hash = get_staged_hash()?;
 
     if staged_hash == NULL_HASH {
@@ -26,7 +35,7 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
         return Ok(());
     } else if is_first_commit()? {
         if !desc_already_set {
-            Command::new("nano")
+            Command::new("vim")
                 .arg(desc_path.clone())
                 .spawn()
                 .expect("Failed to open nano")
@@ -34,57 +43,62 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
                 .expect("Error with running nano");
         }
 
-        let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
+        let description = read_content_from_non_encrypted_file(&desc_path.as_path()).unwrap_or_default();
 
         create_commit(description, String::from(NULL_HASH), staged_hash)?;
     } else {
         if !desc_already_set {
-            Command::new("nano")
+            Command::new("vim")
                 .arg(desc_path.clone())
                 .spawn()
-                .expect("Failed to open nano")
+                .expect("Failed to open vim")
                 .wait()
-                .expect("Error with running nano");
+                .expect("Error with running vim");
         }
 
-        let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
+        let description = read_content_from_non_encrypted_file(&desc_path.as_path()).unwrap_or_default();
         let last_commit_hash = get_head_hash()?;
 
         let last_commit = Commit::get_commit_from_file(last_commit_hash.clone()).map_err(DitError::IoError)?;
 
-        let mut staged_tree = Tree::new(String::from(""), Vec::new(), String::from(""));
-        staged_tree.get_tree_from_file(staged_hash.clone())?;
-        staged_tree.set_hash(staged_hash);
-        let mut staged_root = NodeType::Tree(staged_tree);
+        let mut staged_tree = Tree::default();
+        get_repository_tree_from_object_files(&mut staged_tree, &staged_hash, &objects_path).map_err(|e| {
+            display_message("Error getting repository files from objects directory", Color::RED);
+            DitError::UnexpectedComportement(format!("Error details: {}", e))
+        })?;
+        staged_tree.set_id(staged_hash);
+        let mut staged_root = TreeNode(staged_tree);
 
-        let mut last_commit_tree = Tree::new(String::from(""), Vec::new(), String::from(""));
-        last_commit_tree.get_tree_from_file(last_commit.get_tree().to_string())?;
-        last_commit_tree.set_hash(last_commit.get_tree().to_string());
-        let mut last_commit_root: NodeType = NodeType::Tree(last_commit_tree);
+        let mut last_commit_tree = Tree::default();
+        get_repository_tree_from_object_files(&mut last_commit_tree, last_commit.get_tree(), &objects_path).map_err(|e| {
+            display_message("Error getting repository files from objects directory", Color::RED);
+            DitError::UnexpectedComportement(format!("Error details: {}", e))
+        })?;
+        last_commit_tree.set_id(last_commit.get_tree().to_string());
+        let mut last_commit_root: Node = TreeNode(last_commit_tree);
 
-        let option_deleted_elements = get_deleted_elements()?;
+        let option_deleted_elements = get_deleted_elements()?.unwrap_or(vec![]);
+        let deleted_elements: Vec<PathBuf> = option_deleted_elements
+            .into_iter()
+            .map(|p| PathBuf::from(p))
+            .collect();
 
-        match option_deleted_elements {
-            Some(deleted_elements) => {
-                for deleted_element in deleted_elements {
-                    let real_path = path_from_dit(&deleted_element)?;
-
-                    let mut ancestors: Vec<_> = real_path.ancestors().collect();
-                    ancestors.pop();
-                    ancestors.reverse();
-
-                    find_element_to_remove(&mut last_commit_root, &mut ancestors);
-                    find_element_to_remove(&mut staged_root, &mut ancestors);
-                }
-            }
-            None => ()
+        for deleted_element in deleted_elements {
+            let real_path = path_from_dit(&deleted_element)?;
+            remove_element_from_repository_tree(&mut last_commit_root, &real_path).map_err(|e2| {
+                DitError::UnexpectedComportement(format!("{}", e2))
+            })?;
+            remove_element_from_repository_tree(&mut staged_root, &real_path).map_err(|e2| {
+                DitError::UnexpectedComportement(format!("{}", e2))
+            })?;
         }
 
-        if let Some(mut result) = NodeType::fuse(last_commit_root, staged_root) {
-            let commit_tree_hash = result.create_node_hash();
-            result.transcript_to_files(&find_objects())?;
-
-            create_commit(description, last_commit_hash, commit_tree_hash)?;
+        if let Some(result) = merge_repository_trees(last_commit_root, staged_root, &Mode::Partial) {
+            transcript_repository_to_object_files(&result, &dit_path.join("objects")).map_err(|e1| {
+                display_message("Error transcribing repository files from objects directory", Color::RED);
+                DitError::UnexpectedComportement(format!("Error details: {}", e1))
+            })?;
+            create_commit(description, last_commit_hash, result.get_id())?;
         } else {
             Err(DitError::UnexpectedComportement("Fail to create commit".to_string()))?
         }

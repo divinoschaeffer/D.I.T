@@ -1,3 +1,5 @@
+use std::process;
+
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::is_init;
@@ -6,7 +8,8 @@ use crate::objects::commit::Commit;
 
 pub fn show_commit() -> Result<(), DitError> {
     if !is_init() {
-        return Err(DitError::NotInitialized);
+        display_message("dit repository is not initialized.", Color::RED);
+        process::exit(1);
     }
 
     let branch: Branch = Branch::get_current_branch()?;

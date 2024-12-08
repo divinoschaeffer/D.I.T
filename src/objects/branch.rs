@@ -1,12 +1,14 @@
-use std::fs::{File, OpenOptions};
-use std::io;
-use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write};
-use std::os::unix::fs::FileExt;
+use std::{io, process};
+use std::fs::File;
+use std::io::{BufRead, BufReader, BufWriter, ErrorKind, Read, Write};
+use std::path::PathBuf;
+
+use dit_file_encryptor::CompressedFile;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_info, find_refs, get_head_hash};
-use crate::utils::{NULL_HASH, write_footer_file, write_hash_file, write_header_file};
+use crate::utils::NULL_HASH;
 
 pub struct Branch {
     head: String,
@@ -23,35 +25,36 @@ impl Branch {
     }
 
     pub fn new_branch(name: String, head: String) -> Result<Branch, DitError> {
-        let ref_path = find_refs();
-        let file_path = ref_path.join(name.clone());
-
-        if file_path.is_file() {
-            display_message("Branch with same name already exist", Color::BLUE);
-            return Err(DitError::IoError(Error::from(io::ErrorKind::InvalidData)));
+        if !Self::is_name_ok(&name) {
+            display_message("Branch name must not contains '/'.", Color::RED);
+            process::exit(0);
         }
+        let ref_path = find_refs();
+        let file_path = ref_path.join(&name);
 
-        File::create(file_path).map_err(DitError::IoError)?;
-
+        if file_path.exists() {
+            display_message("Branch with same name already exist, cannot create the branch", Color::RED);
+            process::exit(0);
+        }
+        let file = CompressedFile::create_file(file_path)
+            .map_err(|e| DitError::IoError(e))?;
         Self::set_info_file(name.clone(), head.clone()).map_err(DitError::IoError)?;
-
         if head != NULL_HASH {
-            let branch_path = format!("./.dit/refs/{}", name);
+            let writer = file
+                .open_for_write()
+                .map_err(|e| DitError::IoError(e))?;
 
-            let file = OpenOptions::new()
-                .write(true)
-                .append(true)
-                .create(true)
-                .open(branch_path).map_err(DitError::IoError)?;
-
-            let mut writer = BufWriter::new(file);
+            let mut writer = BufWriter::new(writer);
             writeln!(writer, "{}", head).map_err(DitError::IoError)?;
         }
-
         Ok(Branch {
             head,
             name,
         })
+    }
+
+    pub fn is_name_ok(name: &String) -> bool {
+        !(name.contains('/') || name.contains('\\'))
     }
 
     pub fn exist(name: String) -> bool {
@@ -66,27 +69,33 @@ impl Branch {
     }
 
     pub fn set_info_file(name: String, head: String) -> Result<(), io::Error> {
-        let file = File::create("./.dit/info")?;
+        let path_info_file = PathBuf::from("./.dit/info");
+        let _ = File::create(path_info_file.clone())?;
+        let mut writer = CompressedFile::new(path_info_file)
+            .open_for_write()
+            .map_err(|e| {
+                io::Error::new(io::ErrorKind::InvalidData, e)
+            })?;
 
-        write_header_file(String::from("HEAD"), &file, 0)?;
-        write_hash_file(head, &file, 5)?;
-        write_footer_file(name, file, 46)?;
+        write!(writer, "{} {} {}", "HEAD", head, name)?;
 
         Ok(())
     }
 
     pub fn get_current_branch() -> Result<Branch, DitError> {
         let head = get_head_hash()?;
-        let info = find_info();
+        let info_path = find_info();
 
-        let mut buf = [0u8; 100];
+        let mut reader = CompressedFile::new(info_path)
+            .open_for_read()
+            .map_err(|e| {
+                DitError::IoError(e)
+            })?;
 
-        let file = File::open(info).map_err(DitError::IoError)?;
-
-        file.read_at(&mut buf, 46).map_err(DitError::IoError)?;
-        let filtered_bytes: Vec<u8> = buf.iter().cloned().filter(|&b| b != 0).collect();
-
-        let name = String::from_utf8(filtered_bytes).unwrap();
+        let mut buf = String::new();
+        let _ = reader.read_to_string(&mut buf);
+        let infos: Vec<_> = buf.split_whitespace().collect();
+        let name = String::from(infos[2]);
 
         Ok(Branch {
             head,
@@ -98,12 +107,13 @@ impl Branch {
         let ref_path = find_refs();
         let file_path = ref_path.join(name.clone());
 
-        let file = OpenOptions::new()
-            .read(true)
-            .open(file_path).map_err(DitError::IoError)?;
-
-        let reader = BufReader::new(file);
-        let lines: Vec<_> = reader.lines().collect();
+        let reader = CompressedFile::new(file_path)
+            .open_for_read()
+            .map_err(|e| {
+                DitError::IoError(e)
+            })?;
+        let buf_reader = BufReader::new(reader);
+        let lines: Vec<_> = buf_reader.lines().collect();
         let line = lines.last().ok_or_else(|| DitError::IoError(io::Error::new(io::ErrorKind::UnexpectedEof, "File is empty")))?;
         return match line {
             Ok(hash) => {

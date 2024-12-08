@@ -1,12 +1,15 @@
+use std::{fs, process};
+use std::path::PathBuf;
+
 use clap::{Arg, Command};
-use colored::Colorize;
 
 use dit::features;
 use dit::features::add;
 use dit::features::checkout::checkout;
 use dit::features::commit::commit;
 use dit::features::create_branch::new_branch;
-use dit::features::delete::delete;
+use dit::features::display_message::Color;
+use dit::features::display_message::display_message;
 use dit::features::merge::merge;
 use dit::features::message::message;
 use dit::features::revert::revert;
@@ -61,14 +64,6 @@ fn main() {
                         .value_name("COMMIT ID")
                         .help("Revert files to their state at a specified commit."),
                 ),
-            Command::new("delete").about("Remove committed files").arg(
-                Arg::new("files")
-                    .help("files to remove")
-                    .index(1)
-                    .required(true)
-                    .num_args(0..)
-                    .value_name("FILE(S)"),
-            ),
             Command::new("branch").about("Branch").arg(
                 Arg::new("branch")
                     .num_args(1)
@@ -99,8 +94,14 @@ fn main() {
     // INIT
     if let Some(_) = matches.subcommand_matches("init") {
         match features::init::init_repository() {
-            Ok(()) => println!("{}", "dit is initialize".green()),
-            Err(e) => panic!("Error while initializing dit repository: {}", e),
+            Ok(()) => display_message("dit initialized.", Color::GREEN),
+            Err(e) => {
+                if PathBuf::from("./.dit").is_dir() {
+                    let _ = fs::remove_dir_all("./.dit");
+                }
+                display_message(format!("Error initializing dit repository: {}.", e).as_str(), Color::RED);
+                process::exit(1);
+            }
         };
     }
 
@@ -109,8 +110,11 @@ fn main() {
         if let Some(elements) = matches.get_many::<String>("files") {
             let elements: Vec<_> = elements.collect();
             match add::add(elements) {
-                Ok(()) => (),
-                Err(e) => panic!("Error while adding elements to dit : {}", e),
+                Ok(()) => display_message("Files added.", Color::GREEN),
+                Err(e) => {
+                    display_message(format!("Error adding elements to dit : {}.", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             };
         }
     }
@@ -121,18 +125,10 @@ fn main() {
             let elements: Vec<_> = elements.collect();
             match rm::rm(elements) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while removing elements to dit : {}", e),
-            }
-        }
-    }
-
-    // DELETE
-    if let Some(matches) = matches.subcommand_matches("delete") {
-        if let Some(elements) = matches.get_many::<String>("files") {
-            let elements: Vec<_> = elements.collect();
-            match delete(elements) {
-                Ok(()) => (),
-                Err(e) => panic!("Error while deleting elements to dit : {}", e),
+                Err(e) => {
+                    display_message(format!("Error removing elements to dit : {}", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
     }
@@ -143,31 +139,46 @@ fn main() {
         if let Some(mes) = matches.get_one::<String>("message") {
             match message(mes.parse().unwrap()) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while writing message: {}", e),
+                Err(e) => {
+                    display_message(format!("Error writing message: {}.", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
             match commit(true) {
-                Ok(()) => (),
-                Err(e) => panic!("Error while commiting: {}", e),
+                Ok(()) => display_message("Commit created.", Color::GREEN),
+                Err(e) => {
+                    display_message(format!("Error commiting elements: {}.", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
         // SHOWCOMMIT
         else if matches.get_flag("show") {
             match show_commit() {
                 Ok(()) => (),
-                Err(e) => panic!("Error while displaying commit tree: {}", e),
+                Err(e) => {
+                    display_message(format!("Error displaying commit tree: {}", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
         //REVERT
         else if let Some(hash) = matches.get_one::<String>("revert") {
             match revert(hash.to_string()) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while reverting to the previous state: {e}"),
+                Err(e) => {
+                    display_message(format!("Error reverting to the previous state: {e}").as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
             // COMMIT
         } else {
             match commit(false) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while commiting: {}", e),
+                Err(e) => {
+                    display_message(format!("Error while commiting: {}", e).as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
     }
@@ -177,7 +188,10 @@ fn main() {
         if let Some(name) = matches.get_one::<String>("branch") {
             match new_branch(name) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while creating new branch: {e}"),
+                Err(e) => {
+                    display_message(format!("Error while creating new branch: {e}").as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
     }
@@ -187,7 +201,10 @@ fn main() {
         if let Some(name) = matches.get_one::<String>("branch") {
             match checkout(name) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while changing branch : {e}"),
+                Err(e) => {
+                    display_message(format!("Error while changing branch : {e}").as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
     }
@@ -197,8 +214,12 @@ fn main() {
         if let Some(name) = matches.get_one::<String>("branch") {
             match merge(name) {
                 Ok(()) => (),
-                Err(e) => panic!("Error while merging branch: {e}"),
+                Err(e) => {
+                    display_message(format!("Error while merging branch: {e}").as_str(), Color::RED);
+                    process::exit(1);
+                }
             }
         }
     }
+    process::exit(0);
 }
