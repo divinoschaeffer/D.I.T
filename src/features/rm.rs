@@ -1,5 +1,4 @@
-use std::fs::OpenOptions;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 
 use repository_tree_creator::features::get_repository_tree_from_object_files::get_repository_tree_from_object_files;
@@ -11,7 +10,7 @@ use repository_tree_creator::models::tree::Tree;
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_objects, find_staged, get_staged_hash, is_init};
-use crate::utils::{NULL_HASH, path_from_dit, write_hash_file};
+use crate::utils::{clean_path, NULL_HASH, write_hash_file};
 
 pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
     if !is_init() {
@@ -37,10 +36,14 @@ pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
 
         let mut root = TreeNode(tree);
 
-        for element in elements {
-            let real_path = path_from_dit(element)?;
+        let elements = clean_path(
+            elements.into_iter()
+                .map(|p| PathBuf::from(p))
+                .collect()
+        )?;
 
-            let mut ancestors: Vec<_> = real_path.ancestors().collect();
+        for element in elements {
+            let mut ancestors: Vec<_> = element.ancestors().collect();
             ancestors.pop();
             ancestors.reverse();
 
@@ -51,13 +54,7 @@ pub fn rm(elements: Vec<&String>) -> Result<(), DitError> {
             DitError::UnexpectedComportement(format!("Details: {}.", e1))
         })?;
 
-        let file = OpenOptions::new()
-            .write(true)
-            .append(false)
-            .create(true)
-            .open(staged_path).unwrap();
-
-        write_hash_file(root.get_id(), &file, 0).unwrap();
+        write_hash_file(root.get_id(), staged_path, 0).unwrap();
     }
 
     Ok(())

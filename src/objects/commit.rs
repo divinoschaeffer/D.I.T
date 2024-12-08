@@ -1,7 +1,8 @@
-use std::fs::{File, OpenOptions};
-use std::io::{BufRead, BufReader, BufWriter, Error, Read, Write};
+use std::fs::File;
+use std::io::{BufRead, BufReader, Error, Read, Write};
 use std::path::PathBuf;
 
+use dit_file_encryptor::CompressedFile;
 use dit_id_generator::features::generator::generate;
 use dit_id_generator::traits::generator::Generator;
 use ptree2::print_tree;
@@ -12,7 +13,7 @@ use repository_tree_creator::models::tree::Tree;
 
 use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
-use crate::features::init::{find_dit, find_info, find_objects, find_refs, find_staged, get_object_path, open_object_file};
+use crate::features::init::{find_dit, find_info, find_objects, find_refs, find_staged, get_object_path, get_path_object_file};
 use crate::objects::branch::Branch;
 use crate::objects::node::Node;
 use crate::utils::{NULL_HASH, write_hash_file};
@@ -80,36 +81,26 @@ impl Commit {
         let staged_path = find_staged();
 
         if !commit_path.exists() {
-            let commit_file = File::create(&commit_path).map_err(DitError::IoError)?;
+            let _ = File::create(&commit_path).map_err(DitError::IoError)?;
 
-            let mut writer = BufWriter::new(commit_file);
+            let mut writer = CompressedFile::new(commit_path)
+                .open_for_write()
+                .map_err(|e| DitError::IoError(e))?;
+
             self.write_commit(&mut writer).map_err(DitError::IoError)?;
 
-            self.reference_commit()
-                .expect("Error while referencing commit");
+            self.reference_commit()?;
 
-            let info_file = OpenOptions::new()
-                .write(true)
-                .append(false)
-                .create(false)
-                .open(info_path)
+            write_hash_file(self.hash.clone(), info_path, 5)
                 .map_err(DitError::IoError)?;
 
-            write_hash_file(self.hash.clone(), &info_file, 5).map_err(DitError::IoError)?;
-
-            let staged_file = OpenOptions::new()
-                .write(true)
-                .append(false)
-                .create(false)
-                .open(staged_path)
+            write_hash_file(String::from(NULL_HASH), staged_path, 0)
                 .map_err(DitError::IoError)?;
-
-            write_hash_file(String::from(NULL_HASH), &staged_file, 0).map_err(DitError::IoError)?;
         }
         Ok(())
     }
 
-    fn write_commit(&self, writer: &mut BufWriter<File>) -> Result<(), Error> {
+    fn write_commit(&self, writer: &mut Box<dyn Write>) -> Result<(), Error> {
         writeln!(writer, "tree {}", self.tree)?;
         writeln!(writer, "pare {}", self.parent)?;
         write!(writer, "{}", self.description)?;
@@ -118,43 +109,40 @@ impl Commit {
 
     fn reference_commit(&self) -> Result<(), DitError> {
         let branch = Branch::get_current_branch()?;
-        let branch_path = format!("./.dit/refs/{}", branch.get_name());
+        let branch_path = PathBuf::from(format!("./.dit/refs/{}", branch.get_name()));
 
-        let file = OpenOptions::new()
-            .write(true)
-            .append(true)
-            .create(true)
-            .open(branch_path)
-            .map_err(DitError::IoError)?;
+        let mut commit_hash: String = self.hash.clone();
+        commit_hash.push('\n');
 
-        let mut writer = BufWriter::new(file);
-        writeln!(writer, "{}", self.hash).map_err(DitError::IoError)?;
+        CompressedFile::new(branch_path)
+            .append_to_file(commit_hash.as_bytes())
+            .map_err(|e| DitError::IoError(e))?;
         Ok(())
     }
 
     pub fn reset_description_file() -> Result<(), Error> {
         let path = PathBuf::from("./.dit/commit");
-        let file = OpenOptions::new().write(true).truncate(true).open(path)?;
-        let mut writer = BufWriter::new(file);
-        write!(writer, "")?;
+        File::open(path)?;
         Ok(())
     }
 
     pub fn get_commit_from_file(hash: String) -> Result<Commit, Error> {
-        let file = open_object_file(hash)?;
-        let mut reader = BufReader::new(file);
+        let file = get_path_object_file(hash)?;
+        let reader = CompressedFile::new(file)
+            .open_for_read()?;
+
+        let mut buf_reader = BufReader::new(reader);
+
         let mut tree_line: String = Default::default();
-        reader.read_line(&mut tree_line)?;
+        buf_reader.read_line(&mut tree_line)?;
         let tree = &tree_line[5..45];
 
         let mut parent_line: String = Default::default();
-        reader.read_line(&mut parent_line)?;
+        buf_reader.read_line(&mut parent_line)?;
         let parent = &parent_line[5..45];
 
         let mut description: String = Default::default();
-        reader
-            .read_to_string(&mut description)
-            .expect("Failed to read commit file");
+        buf_reader.read_to_string(&mut description)?;
 
         Ok(Commit::new(
             String::from(tree),
@@ -187,9 +175,11 @@ impl Commit {
 
     pub fn get_commit_list(branch_name: String) -> Result<Vec<Commit>, Error> {
         let branch_path = find_refs().join(branch_name);
-        let file = OpenOptions::new().read(true).open(branch_path)?;
 
-        let reader = BufReader::new(file);
+        let reader = BufReader::new(
+            CompressedFile::new(branch_path)
+                .open_for_read()?
+        );
 
         let mut commits: Vec<Commit> = Vec::new();
 

@@ -1,4 +1,3 @@
-use std::fs::OpenOptions;
 use std::process;
 
 use crate::error::DitError;
@@ -24,13 +23,7 @@ pub fn revert(hash: String) -> Result<(), DitError> {
             let commit = Commit::get_commit_from_file(hash).map_err(DitError::IoError)?;
             commit.recreate_files()?;
 
-            let info_file = OpenOptions::new()
-                .write(true)
-                .append(false)
-                .create(false)
-                .open(info_path).map_err(DitError::IoError)?;
-
-            write_hash_file(commit.get_hash().clone(), &info_file, 5).map_err(DitError::IoError)?;
+            write_hash_file(commit.get_hash().clone(), info_path, 5).map_err(DitError::IoError)?;
         }
     } else {
         display_message("Commit ID not recognized", Color::BLUE);

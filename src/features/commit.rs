@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::process;
 use std::process::Command;
 
@@ -13,7 +14,7 @@ use crate::error::DitError;
 use crate::features::display_message::{Color, display_message};
 use crate::features::init::{find_dit, get_staged_hash, is_init};
 use crate::objects::commit::Commit;
-use crate::utils::{NULL_HASH, path_from_dit, read_content_file_from_path};
+use crate::utils::{NULL_HASH, path_from_dit, read_content_from_non_encrypted_file};
 
 use super::delete::get_deleted_elements;
 use super::init::get_head_hash;
@@ -34,7 +35,7 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
         return Ok(());
     } else if is_first_commit()? {
         if !desc_already_set {
-            Command::new("nano")
+            Command::new("vim")
                 .arg(desc_path.clone())
                 .spawn()
                 .expect("Failed to open nano")
@@ -42,7 +43,7 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
                 .expect("Error with running nano");
         }
 
-        let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
+        let description = read_content_from_non_encrypted_file(&desc_path.as_path()).unwrap_or_default();
 
         create_commit(description, String::from(NULL_HASH), staged_hash)?;
     } else {
@@ -55,7 +56,7 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
                 .expect("Error with running vim");
         }
 
-        let description = read_content_file_from_path(&desc_path.as_path()).unwrap_or_default();
+        let description = read_content_from_non_encrypted_file(&desc_path.as_path()).unwrap_or_default();
         let last_commit_hash = get_head_hash()?;
 
         let last_commit = Commit::get_commit_from_file(last_commit_hash.clone()).map_err(DitError::IoError)?;
@@ -76,21 +77,20 @@ pub fn commit(desc_already_set: bool) -> Result<(), DitError> {
         last_commit_tree.set_id(last_commit.get_tree().to_string());
         let mut last_commit_root: Node = TreeNode(last_commit_tree);
 
-        let option_deleted_elements = get_deleted_elements()?;
+        let option_deleted_elements = get_deleted_elements()?.unwrap_or(vec![]);
+        let deleted_elements: Vec<PathBuf> = option_deleted_elements
+            .into_iter()
+            .map(|p| PathBuf::from(p))
+            .collect();
 
-        match option_deleted_elements {
-            Some(deleted_elements) => {
-                for deleted_element in deleted_elements {
-                    let real_path = path_from_dit(&deleted_element)?;
-                    remove_element_from_repository_tree(&mut last_commit_root, &real_path).map_err(|e2| {
-                        DitError::UnexpectedComportement(format!("{}", e2))
-                    })?;
-                    remove_element_from_repository_tree(&mut staged_root, &real_path).map_err(|e2| {
-                        DitError::UnexpectedComportement(format!("{}", e2))
-                    })?;
-                }
-            }
-            None => ()
+        for deleted_element in deleted_elements {
+            let real_path = path_from_dit(&deleted_element)?;
+            remove_element_from_repository_tree(&mut last_commit_root, &real_path).map_err(|e2| {
+                DitError::UnexpectedComportement(format!("{}", e2))
+            })?;
+            remove_element_from_repository_tree(&mut staged_root, &real_path).map_err(|e2| {
+                DitError::UnexpectedComportement(format!("{}", e2))
+            })?;
         }
 
         if let Some(result) = merge_repository_trees(last_commit_root, staged_root, &Mode::Partial) {

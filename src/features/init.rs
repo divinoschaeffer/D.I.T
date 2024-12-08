@@ -7,6 +7,11 @@ use crate::features::display_message::{Color, display_message};
 use crate::objects::branch::Branch;
 use crate::utils::{NULL_HASH, read_hash_file, write_hash_file};
 
+pub const STAGED_HASH_POSITION: usize = 0;
+pub const INFO_HASH_POSITION: usize = 1;
+
+const STAGED_PATH: &str = "./.dit/staged";
+
 pub fn init_repository() -> Result<(), io::Error> {
     let dit_path = PathBuf::from("./.dit");
     if dit_path.is_dir() {
@@ -14,7 +19,7 @@ pub fn init_repository() -> Result<(), io::Error> {
     }
     fs::create_dir_all("./.dit/objects")?;
     fs::create_dir("./.dit/refs/")?;
-    
+
     init_object_dir()?;
 
     init_info_file()?;
@@ -62,14 +67,13 @@ fn init_info_file() -> Result<(), io::Error> {
 
 fn init_staged_file() -> Result<(), io::Error> {
     display_message("Initializing staged file", Color::DEFAULT);
-    let file = File::create("./.dit/staged")?;
-
-    write_hash_file(String::from(NULL_HASH), &file, 0)?;
+    let staged_path = PathBuf::from(STAGED_PATH);
+    write_hash_file(String::from(NULL_HASH), staged_path, 0)?;
     display_message("Initialized staged file", Color::DEFAULT);
     Ok(())
 }
 
-pub fn open_object_file(hash: String) -> Result<File, io::Error> {
+pub fn get_path_object_file(hash: String) -> Result<PathBuf, io::Error> {
     let b_hash = &hash[..2];
     let e_hash = &hash[2..];
 
@@ -77,8 +81,7 @@ pub fn open_object_file(hash: String) -> Result<File, io::Error> {
     if object_dir.exists() {
         let object_file = object_dir.join(e_hash);
         if object_file.exists() {
-            let file = File::open(object_file)?;
-            return Ok(file);
+            return Ok(object_file);
         }
     }
     Err(io::Error::new(io::ErrorKind::NotFound, "Error file not found in objects: {hash}"))
@@ -86,14 +89,14 @@ pub fn open_object_file(hash: String) -> Result<File, io::Error> {
 
 pub fn get_staged_hash() -> Result<String, DitError> {
     let staged_path = find_staged();
-    let file = File::open(staged_path).map_err(DitError::IoError)?;
-    Ok(read_hash_file(file, 0))
+    let hash = read_hash_file(staged_path, STAGED_HASH_POSITION)?;
+    Ok(hash)
 }
 
 pub fn get_head_hash() -> Result<String, DitError> {
     let info_path = find_info();
-    let file = File::open(info_path).map_err(DitError::IoError)?;
-    Ok(read_hash_file(file, 5))
+    let hash = read_hash_file(info_path, INFO_HASH_POSITION)?;
+    Ok(hash)
 }
 
 pub fn find_objects() -> PathBuf {

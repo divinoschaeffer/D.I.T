@@ -5,14 +5,12 @@ edition = "2021"
 
 [dependencies]
 clap = "4.5.9"
-walkdir = "2.5.0"
-sha1 = "0.11.0-pre.1"
-hex = "0.4.3"
 ptree2 = "1.0.0"
-diff = "0.1.13"
 colored = "2.1.0"
-dit_id_generator = { git = "https://github.com/divinoschaeffer/dit_id_generator.git" }
-repository_tree_creator = { git = "https://github.com/divinoschaeffer/repository_tree_creator.git", branch = "dev" }
+dit_id_generator = { git = "https://github.com/divinoschaeffer/dit_id_generator.git", branch = "master" }
+dit_file_encryptor = { git = "https://github.com/divinoschaeffer/dit_file_encryptor.git", branch = "main" }
+repository_tree_creator = { git = "https://github.com/divinoschaeffer/repository_tree_creator.git", branch = "master" }
+log = "0.4.22"
 
 [dev-dependencies]
 tempdir = "0.3.7"
